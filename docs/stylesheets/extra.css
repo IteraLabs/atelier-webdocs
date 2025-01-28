@@ -1,0 +1,11 @@
+/* Light mode colors */
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color:        #1B1B1D; // top bar
+  --md-primary-fg-color--light: #f3f5f8; // white
+  --md-primary-fg-color--dark:  #90030C; // marron
+  --md-accent-fg-color:         #FF9800; // orange 
+  --md-accent-fg-color--light:  #1B1B1D; // yellow 
+  --md-accent-fg-color--dark:   #F57C00; // mid orange
+  --md-typeset-a-color:         #0000FF; // link
+}
+
