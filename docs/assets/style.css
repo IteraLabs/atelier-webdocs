@@ -1,0 +1,47 @@
+:root {
+    --global-font-size: 16px;
+    --global-code-font-size: 16px;
+    --global-line-height: 1.5em;
+    --global-space: 10px;
+    --font-stack: Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono,
+        Courier New, monospace, serif;
+    --font-stack: dm, Monaco, Courier New, monospace, serif;
+    --mono-font-stack: Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono,
+        Courier New, monospace, serif;
+
+    --progress-bar-background: #444; /* Darker background for progress bar */
+    --progress-bar-fill: #1a95e0; /* Bright color for progress bar fill */
+    --page-width: 110em;
+    --side-nav-with: 10em;
+    --display-h1-decoration: none;
+}
+
+/* Side bar and Content balance proportions for large screens (pc large tables) */ 
+@media only screen and (min-width: 70em) {
+  
+  .terminal-mkdocs-main-content {
+    line-height: var(--global-line-height);
+    max-width: var(--page-width);
+  }
+
+  .terminal-mkdocs-main-grid {
+    grid-template-columns: 2fr 9fr;
+  }
+}
+
+/* Menu spacing and alignment */
+nav.terminal-menu ul {
+    gap: 40px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    nav.terminal-menu ul {
+        flex-direction: column;
+        gap: 10px;
+    }
+    nav.terminal-menu ul li a.menu-item {
+        padding: 10px;
+    }
+}
+

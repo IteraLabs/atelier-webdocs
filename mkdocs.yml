@@ -39,5 +39,8 @@ nav:
 plugins:
   - search
     
+extra_css:
+  - assets/style.css
+
 copyright: Copyright &copy; 2025 iteralabs.ai
 

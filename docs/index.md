@@ -20,5 +20,3 @@ A Computational Workshop for Market Microstructure Modeling, Synthetic Simulatio
 
 Coming soon ...
 
-</div>
-
