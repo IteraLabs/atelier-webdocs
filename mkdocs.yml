@@ -1,28 +1,43 @@
 site_name: Atelier
+site_description: Wed Documentation for the Atelier SDK
+site_url: https://iteralabs.ai/atelier
+repo_url: https://github.com/iteralabs/atelier
+repo_name: atelier
+site_author: Iteralabs.ai
+docs_dir: docs/
+
 theme: 
   name: terminal
   language: en
+  palette: Sans
+  features:
+    - revision.date
+    - revision.history
 
 nav: 
   - Home: 'index.md'
 
-  - Overview: 'overview.md'
+  - Overview: 'overview/overview.md'
 
   - Getting Started: 
-    - Installation: 'installation.md'
+    - Installation: 'getting_started/installation.md'
 
   - Logs:
-    - Logging : 'Logging.md'
+    - Logging : 'logs/logs.md'
 
   - Implementation:
-    - Usage Patterns: 'design_patterns.md'
-    - Platform Specifications: 'platform_specs.md'
-    - Other libraries: 'other_libraries.md'
+    - Usage Patterns: 'implementation/usage_patterns.md'
+    - Platform Specifications: 'implementation/platform_specs.md'
   
   - Support:
-    - Common Issues: 'common_issues.md'
-    - FAQ: 'faq.md'
-    - Release Notes: 'release_notes.md'
+    - Common Issues: 'support/common_issues.md'
+    - FAQ: 'support/faq.md'
+    - Release Notes: 'support/release_notes.md'
 
   - Contact:
-    - Get in Touch: 'get_in_touch.md' 
+    - Get in Touch: 'contact/get_in_touch.md' 
+plugins:
+  - search
+    
+copyright: Copyright &copy; 2025 iteralabs.ai
+

@@ -1,0 +1,14 @@
+# Base
+mkdocs
+pydantic
+markdown
+
+# Theme
+mkdocs-terminal
+
+# Python Markdown Extensions
+pygments >= 2.18
+pymdown-extensions >= 10.12
+
+# MkDocs Plugins
+mkdocs-git-revision-date-plugin

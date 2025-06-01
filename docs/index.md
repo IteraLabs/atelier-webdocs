@@ -18,9 +18,7 @@ A Computational Workshop for Market Microstructure Modeling, Synthetic Simulatio
 [badge-discord]: https://img.shields.io/discord/500028886025895936.svg?logo=discord&style=flat-square
 [url-discord]: https://discord.gg/tokio
 
-[Website](https://iteralabs.ai/atelier-rs) 
-
-<div class="grid cards" markdown>
+Coming soon ...
 
 </div>
 
