@@ -1,0 +1,28 @@
+# Keep the build context lean. Anything not copied into the image
+# stays in this list.
+
+.git/
+.github/
+.venv/
+venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+.DS_Store
+
+# Build outputs that should be regenerated inside the image.
+site/
+
+# Editor / OS noise.
+.vscode/
+.idea/
+
+# Local-only files.
+*.env
+*.local
+
+# Doc-source-only files we don't need at runtime.
+CONTRIBUTING.md
+.gitignore
+.dockerignore
+.editorconfig

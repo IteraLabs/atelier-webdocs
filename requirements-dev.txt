@@ -1,0 +1,13 @@
+# Developer-only tooling — not needed to build the site itself, but
+# used by `make lint` and CI to guard against broken links and stylistic
+# drift. Keep these out of the production Dockerfile.
+
+-r requirements.txt
+
+# HTML link checker — runs against the built `site/` tree.
+linkchecker==10.5.0
+
+# Markdown linter — runs against docs/**/*.md.
+# Note: pymarkdownlnt is the Python package; markdownlint-cli2 (Node) is
+# also acceptable but adds a Node dependency to the dev environment.
+pymarkdownlnt==0.9.24

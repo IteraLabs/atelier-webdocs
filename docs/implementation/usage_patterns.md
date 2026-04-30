@@ -1,4 +1,0 @@
-# Usage Patterns
----
-
-## This is 

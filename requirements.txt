@@ -1,14 +1,21 @@
-# Base
-mkdocs
-pydantic
-markdown
+# Runtime build dependencies for the docs site.
+# Pinned to exact versions so CI, the Dockerfile, and local dev all
+# produce byte-identical output. Bump deliberately, never automatically.
 
-# Theme
-mkdocs-terminal
+mkdocs==1.6.1
+mkdocs-material==9.5.44
+pymdown-extensions==10.12
 
-# Python Markdown Extensions
-pygments >= 2.18
-pymdown-extensions >= 10.12
+# Pygments 2.20.0 introduced a regression where `filename=None` in the
+# HtmlFormatter trips html.escape() with a NoneType error. pymdown-extensions
+# 10.12 hits this path on every <code> element. Pin until both upstream
+# packages reconcile. Tracked: pygments/pygments#2768 and pymdown-extensions.
+pygments<2.20
 
-# MkDocs Plugins
-mkdocs-git-revision-date-plugin
+# Versioned deploys — publishes /atelier/docs/<version>/ subdirectories
+# and a versions.json that the Material theme reads to render the
+# version selector dropdown.
+mike==2.1.3
+
+# "Last updated" timestamp on each page, sourced from git history.
+mkdocs-git-revision-date-localized-plugin==1.2.9

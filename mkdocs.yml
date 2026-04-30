@@ -1,46 +1,190 @@
-site_name: Atelier
-site_description: Wed Documentation for the Atelier SDK
-site_url: https://iteralabs.github.io/atelier-webdocs
-repo_url: https://github.com/iteralabs/atelier
-repo_name: atelier
-site_author: Iteralabs.ai
-docs_dir: docs
+# ─────────────────────────────────────────────────────────────────────
+#  mkdocs.yml — atelier-webdocs
+#
+#  Builds the Atelier SDK documentation site, served at
+#  https://www.iteralabs.xyz/atelier/docs/  (subpath deploy via the
+#  Cloudflare Tunnel that fronts iteralabs.xyz).
+#
+#  Versioning is handled by `mike`: each tagged release publishes its
+#  own subdirectory (e.g. /atelier/docs/0.1.0-beta/) and the `latest`
+#  alias points at the most recent stable docs version. Doc-version
+#  is decoupled from SDK-version (the SDK version this site documents
+#  is read from the `SDK_VERSION` file at the repo root and surfaced
+#  in the page footer via overrides/partials/copyright.html).
+# ─────────────────────────────────────────────────────────────────────
 
-theme: 
-  name: terminal
+site_name: Atelier SDK
+site_description: Documentation for the Atelier SDK — quantitative & ML research simulator
+# Trailing slash matters: MkDocs uses this as the base for the canonical
+# <link> tag and the sitemap.
+site_url: https://www.iteralabs.xyz/atelier/docs/
+site_author: IteraLabs
+
+# "Edit on GitHub" pencil points at the SDK repo for SDK pages and is
+# overridden per-page where appropriate via `edit_uri`.
+repo_name: IteraLabs/atelier-sdk
+repo_url: https://github.com/IteraLabs/atelier-sdk
+edit_uri: ""
+
+# Strict mode promotes warnings (broken links, orphan pages, missing
+# nav entries) to build errors. Together with the `validation` block
+# below, this is what keeps the docs honest in CI.
+strict: true
+
+# Every page becomes /<page>/index.html — required for the nginx
+# try_files chain to resolve nested pages cleanly under /atelier/docs/.
+use_directory_urls: true
+
+# ─────────────────────────────────────────────────────────────────────
+#  Validation
+#  ──────────
+#  Promotes "quiet" warnings to errors so strict mode catches them.
+#  The exclude_docs entries keep _readme-drafts/ and other internal
+#  staging out of the build without tripping omitted_files.
+# ─────────────────────────────────────────────────────────────────────
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+
+# Files that exist under docs/ but are intentionally not part of the
+# rendered site (drafts, internal staging, archives).
+exclude_docs: |
+  _readme-drafts/
+
+# ─────────────────────────────────────────────────────────────────────
+#  Theme — Material, dark/light, custom partials in overrides/.
+# ─────────────────────────────────────────────────────────────────────
+theme:
+  name: material
   language: en
-  palette: Sans
+  custom_dir: overrides
   features:
-    - revision.date
-    - revision.history
+    - navigation.instant
+    - navigation.tracking
+    - navigation.top
+    - navigation.sections
+    - navigation.indexes
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: black
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+  icon:
+    repo: fontawesome/brands/github
 
-nav: 
-  - Home: 'index.md'
+extra_css:
+  - stylesheets/extra.css
 
-  - Overview: 'overview/overview.md'
+# ─────────────────────────────────────────────────────────────────────
+#  Versioning (mike) — the version selector dropdown lives here.
+#  `extra.version.provider: mike` tells the Material theme to read the
+#  versions.json that mike publishes to the gh-pages branch.
+#
+#  `extra.atelier_sdk_version` is read by overrides/partials/copyright.html
+#  and rendered in the page footer. The build wrapper (scripts/build.sh,
+#  Dockerfile) injects it from the SDK_VERSION file at build time so
+#  this stays a single source of truth.
+# ─────────────────────────────────────────────────────────────────────
+extra:
+  version:
+    provider: mike
+    default: latest
+  atelier_sdk_version: !ENV [ATELIER_SDK_VERSION, "0.0.10"]
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/IteraLabs
+  generator: false
 
-  - Getting Started: 
-    - Installation: 'getting_started/installation.md'
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
 
-  - Logs:
-    - Logging : 'logs/logs.md'
-
-  - Implementation:
-    - Usage Patterns: 'implementation/usage_patterns.md'
-    - Platform Specifications: 'implementation/platform_specs.md'
-  
-  - Support:
-    - Common Issues: 'support/common_issues.md'
-    - FAQ: 'support/faq.md'
-    - Release Notes: 'support/release_notes.md'
-
-  - Contact:
-    - Get in Touch: 'contact/get_in_touch.md' 
 plugins:
   - search
-    
-extra_css:
-  - assets/style.css
+  - git-revision-date-localized:
+      enabled: !ENV [GIT_REVISION_DATE_ENABLED, true]
+      type: date
+      fallback_to_build_date: true
+      enable_creation_date: false
 
-copyright: Copyright &copy; 2025 iteralabs.ai
+# ─────────────────────────────────────────────────────────────────────
+#  Navigation
+#  ──────────
+#  Curated explicit nav. New markdown files must be added here or
+#  validation.omitted_files will fail strict mode.
+# ─────────────────────────────────────────────────────────────────────
+nav:
+  - Home: index.md
+  - Getting started: sdk/getting-started.md
+  - Architecture: sdk/architecture.md
 
+  - SDK:
+      - Overview: sdk/index.md
+      - atelier-types: sdk/types/index.md
+      - atelier-connect: sdk/connect/index.md
+      - atelier-io: sdk/io/index.md
+      - atelier-data: sdk/data/index.md
+      - atelier-quant: sdk/quant/index.md
+      - atelier-telemetry: sdk/telemetry/index.md
+
+  - Tutorials:
+      - Overview: guides/index.md
+      - Bybit → Parquet: guides/01-bybit-to-parquet.md
+      - Multi-exchange sync: guides/02-multi-exchange-sync.md
+      - Hawkes on arrivals: guides/03-hawkes-on-arrivals.md
+
+  - API reference:
+      - Overview: sdk/api/index.md
+      - atelier-types: sdk/api/atelier-types/index.md
+      - atelier-connect: sdk/api/atelier-connect/index.md
+      - atelier-io: sdk/api/atelier-io/index.md
+      - atelier-data: sdk/api/atelier-data/index.md
+      - atelier-quant: sdk/api/atelier-quant/index.md
+      - atelier-telemetry: sdk/api/atelier-telemetry/index.md
+
+  - Backend:
+      - Overview: backend/index.md
+
+  - Operations:
+      - Overview: operations/index.md
+      - atelier-agent: operations/agent.md
+      - Cutover runbook: operations/cutover-runbook.md
+
+  - About: about.md

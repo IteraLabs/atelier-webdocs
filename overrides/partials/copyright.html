@@ -1,0 +1,42 @@
+{# ────────────────────────────────────────────────────────────────────
+   overrides/partials/copyright.html
+   ─────────────────────────────────
+   Renders the page footer. Material's default copyright partial emits
+   only the configured `copyright` string; we extend it with two extra
+   pieces of metadata that are useful on a docs site for a fast-moving
+   SDK:
+
+     1. The atelier-sdk version this docs build documents — read from
+        config.extra.atelier_sdk_version, which mkdocs.yml populates
+        from the SDK_VERSION file at build time via the
+        ATELIER_SDK_VERSION environment variable. Single source of
+        truth: the SDK_VERSION file.
+
+     2. The docs-site version label — read from config.extra.version
+        if mike has been engaged. Distinct from the SDK version on
+        purpose (Q9 of the design interview).
+
+   The layout is deliberately understated: small grey text under the
+   theme's standard copyright line, no decoration, no emojis.
+   ─────────────────────────────────────────────────────────────────── #}
+
+<div class="md-copyright">
+  {% if config.copyright %}
+    <div class="md-copyright__highlight">
+      {{ config.copyright }}
+    </div>
+  {% endif %}
+
+  <div class="md-copyright__atelier" style="opacity: 0.7; font-size: 0.7rem; margin-top: 0.25rem;">
+    Documenting <code>atelier-sdk</code> v{{ config.extra.atelier_sdk_version }}
+  </div>
+
+  {% if not config.extra.generator == false %}
+    <div class="md-copyright__generator">
+      Made with
+      <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+        Material for MkDocs
+      </a>
+    </div>
+  {% endif %}
+</div>

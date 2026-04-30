@@ -1,0 +1,21 @@
+/* atelier-webdocs — small theme tweaks layered on top of mkdocs-material.
+   Keep this file minimal; prefer theme palette options in mkdocs.yml
+   over CSS overrides whenever possible. */
+
+/* Tighter table cell padding so wide reference tables (backend env
+   vars, schema field tables) stay readable on laptop widths. */
+.md-typeset table:not([class]) th,
+.md-typeset table:not([class]) td {
+  padding: 0.5em 0.75em;
+}
+
+/* Code blocks: slightly tighter line-height for dense API examples. */
+.md-typeset pre > code {
+  line-height: 1.45;
+}
+
+/* Version selector contrast on the dark scheme. mike's selector
+   inherits from the header palette; this nudges it for legibility. */
+[data-md-color-scheme="slate"] .md-version__current {
+  color: var(--md-primary-bg-color);
+}
