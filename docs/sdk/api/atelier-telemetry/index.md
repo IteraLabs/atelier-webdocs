@@ -1,61 +1,52 @@
-# `atelier-telemetry` — API reference
+# `atelier_telemetry`
 
-Skeleton API reference for crate
-[`atelier-telemetry`](https://docs.rs/atelier-telemetry/0.0.10/atelier_telemetry/) at
-version `0.0.10`.
+OpenTelemetry instrumentation for the atelier-sdk engine.
 
-!!! info "Preliminary skeleton"
-    Hand-derived from the Phase-1 survey. Run
-    `make sdk-api SDK_PATH=../atelier-sdk` before cutover to refresh.
+`atelier-telemetry` provides a self-contained OTel foundation:
 
-## Top-level items
+- **Metrics**: Counter, Histogram, and Gauge instruments for ingestion
+  pipeline observability ([`meters::IngestionMeters`]).
+- **Traces**: Bridged from the `tracing` crate via `tracing-opentelemetry`,
+  so existing `tracing::info_span!` calls automatically become OTel spans.
+- **Exporters**: Pluggable backend selection — stdout for development,
+  OTLP gRPC for production, no-op for tests ([`exporters::ExporterKind`]).
 
-| Item                                                                                                          | What it is                                                                                  |
-|---------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
-| [`TelemetryConfig`](https://docs.rs/atelier-telemetry/0.0.10/atelier_telemetry/struct.TelemetryConfig.html)    | Deserializable config: exporter kind, endpoint, sampling, service name                       |
-| [`TelemetryGuard`](https://docs.rs/atelier-telemetry/0.0.10/atelier_telemetry/struct.TelemetryGuard.html)      | RAII guard returned by `init_telemetry`; flushes on drop                                     |
-| [`init_telemetry`](https://docs.rs/atelier-telemetry/0.0.10/atelier_telemetry/fn.init_telemetry.html)          | Sets up the global tracer / meter provider from a `TelemetryConfig`                         |
-| [`ingestion_meters`](https://docs.rs/atelier-telemetry/0.0.10/atelier_telemetry/fn.ingestion_meters.html)      | Factory returning an `IngestionMeters` instance                                             |
+# Quick Start
 
-## Modules
+```ignore
+use atelier_telemetry::{TelemetryConfig, init_telemetry};
 
-### [`attributes`](https://docs.rs/atelier-telemetry/0.0.10/atelier_telemetry/attributes/)
+let config = TelemetryConfig::default();
+let guard = init_telemetry(&config)?;
 
-Attribute-key vocabulary plus helper functions that build attribute
-sets for events, workers, and topic classifications.
+// … run workers …
 
-| Constant         | Purpose                                          |
-|------------------|--------------------------------------------------|
-| `EXCHANGE`       | Attribute key for the exchange name              |
-| `SYMBOL`         | Attribute key for the trading pair / symbol       |
-| `MARKET_TYPE`    | Attribute key for spot / futures / etc.          |
-| `WORKER_ID`      | Attribute key for the worker identifier          |
-| `TOPIC`          | Attribute key for the event topic                |
-| `SINK_NAME`      | Attribute key for the output sink name           |
-| `TOPIC_CATEGORY` | Attribute key for the topic category             |
+drop(guard); // flushes and shuts down providers
+```
 
-Helper functions: `topic_category()`, `event_attributes()`, `worker_attributes()`.
+# Crate Organisation
 
-### [`exporters`](https://docs.rs/atelier-telemetry/0.0.10/atelier_telemetry/exporters/)
+| Module | Purpose |
+|---|---|
+| [`attributes`] | Shared OTel attribute keys and builders |
+| [`meters`] | Instrument definitions and recording helpers |
+| [`exporters`] | Exporter selection and `MeterProvider` construction |
 
-| Item                       | What it is                                                          |
-|----------------------------|---------------------------------------------------------------------|
-| `ExporterKind`             | Enum: `Stdout`, `Otlp`, `None`                                      |
-| `build_meter_provider`     | Factory for a meter-provider given an `ExporterKind` + endpoint     |
+!!! info "Skeleton API reference"
+    This page lists the public items in `atelier_telemetry`. For full
+    signatures, source links, and trait implementations, see the
+    [docs.rs page for this module](https://docs.rs/atelier-telemetry/0.0.10/atelier_telemetry/).
 
-### [`meters`](https://docs.rs/atelier-telemetry/0.0.10/atelier_telemetry/meters/)
+## Structs
 
-The fixed-name metric vocabulary every worker and sink shares:
+| Item | Summary |
+| --- | --- |
+| [`TelemetryConfig`](https://docs.rs/atelier-telemetry/0.0.10/atelier_telemetry/struct.TelemetryConfig.html) | Top-level telemetry configuration, typically deserialized from TOML. |
+| [`TelemetryGuard`](https://docs.rs/atelier-telemetry/0.0.10/atelier_telemetry/struct.TelemetryGuard.html) | RAII guard that shuts down the OTel `MeterProvider` on drop. |
 
-| Constant                  | Metric                                                                  |
-|---------------------------|-------------------------------------------------------------------------|
-| `MESSAGES_RECEIVED`       | Counter — events received                                               |
-| `EVENT_LATENCY_MS`        | Histogram — milliseconds between event timestamp and ingestion          |
-| `WORKER_CONNECTION_STATE` | Gauge — encoded connection state                                         |
-| `SINK_QUEUE_DEPTH`        | Gauge — current backpressure depth                                       |
-| `LATENCY_BUCKETS_MS`      | The histogram bucket boundaries used by `EVENT_LATENCY_MS`              |
+## Functions
 
-Plus `IngestionMeters` (struct) and its 8 public methods, and the
-free function `connection_state_code()`.
-
-Full reference (docs.rs): <https://docs.rs/atelier-telemetry/0.0.10/atelier_telemetry/>
+| Item | Summary |
+| --- | --- |
+| [`ingestion_meters`](https://docs.rs/atelier-telemetry/0.0.10/atelier_telemetry/fn.ingestion_meters.html) | Create [`IngestionMeters`] from the global meter provider. |
+| [`init_telemetry`](https://docs.rs/atelier-telemetry/0.0.10/atelier_telemetry/fn.init_telemetry.html) | Initialize the OpenTelemetry telemetry stack. |
