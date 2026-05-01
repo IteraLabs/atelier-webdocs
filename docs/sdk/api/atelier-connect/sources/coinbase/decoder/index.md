@@ -3,7 +3,7 @@
 Coinbase Advanced Trade WSS decoder.
 
 Routes incoming JSON messages by the `"channel"` field to produce
-[`CoinbaseWssEvent`] variants.
+`CoinbaseWssEvent` variants.
 
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_connect::sources::coinbase::decoder`. For full
@@ -14,4 +14,4 @@ Routes incoming JSON messages by the `"channel"` field to produce
 
 | Item | Summary |
 | --- | --- |
-| [`CoinbaseDecoder`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/sources/coinbase/decoder/struct.CoinbaseDecoder.html) | [`WssDecoder`] implementation for the Coinbase Advanced Trade WebSocket API. |
+| [`CoinbaseDecoder`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/sources/coinbase/decoder/struct.CoinbaseDecoder.html) | `WssDecoder` implementation for the Coinbase Advanced Trade WebSocket API. |

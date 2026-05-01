@@ -3,7 +3,7 @@
 Market snapshot joining all data sources.
 Multi-source market snapshot aggregation.
 
-A [`MarketSnapshot`] joins orderbook state, trades, liquidations, funding
+A `MarketSnapshot` joins orderbook state, trades, liquidations, funding
 rates, and open interest at a single grid-aligned timestamp. This is the
 canonical input to multi-source feature computation.
 

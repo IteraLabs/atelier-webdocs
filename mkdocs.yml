@@ -43,7 +43,13 @@ use_directory_urls: true
 #  staging out of the build without tripping omitted_files.
 # ─────────────────────────────────────────────────────────────────────
 validation:
-  omitted_files: warn
+  # The auto-generated API skeleton (docs/sdk/api/<crate>/<module>/index.md)
+  # produces ~100 pages outside the curated `nav`. They're reachable via
+  # the per-crate index tables and via search, but treating them as nav
+  # orphans would force ~100 hand-maintained nav entries that change on
+  # every `make sdk-api` regen. `info` keeps mkdocs informative without
+  # tripping strict mode on this expected pattern.
+  omitted_files: info
   absolute_links: warn
   unrecognized_links: warn
 

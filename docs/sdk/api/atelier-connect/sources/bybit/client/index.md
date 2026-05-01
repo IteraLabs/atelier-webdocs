@@ -2,9 +2,9 @@
 
 Bybit-specific WebSocket client.
 
-[`BybitWssClient`] is a thin, exchange-aware wrapper that handles
+`BybitWssClient` is a thin, exchange-aware wrapper that handles
 Bybit's connection, subscription framing, heartbeat protocol, and
-delegates all message decoding to [`BybitDecoder`] via the [`WssDecoder`]
+delegates all message decoding to `BybitDecoder` via the `WssDecoder`
 trait.
 
 This is the single entry point for Bybit WSS I/O. All other code

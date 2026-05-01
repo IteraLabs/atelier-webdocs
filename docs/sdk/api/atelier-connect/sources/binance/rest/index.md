@@ -2,7 +2,7 @@
 
 Binance spot public REST client for orderbook snapshots.
 
-[`BinanceRestClient`] fetches a single depth snapshot from the
+`BinanceRestClient` fetches a single depth snapshot from the
 Binance REST API. It is a thin wrapper over `reqwest::Client`
 with no rate-limiting (single-call usage).
 

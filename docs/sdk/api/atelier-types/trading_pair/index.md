@@ -3,7 +3,7 @@
 Canonical trading pair representation
 Canonical trading pair representation.
 
-[`TradingPair`] decomposes a trading pair into its base and quote
+`TradingPair` decomposes a trading pair into its base and quote
 assets, providing format conversions for every exchange and a
 canonical `"BASE/QUOTE"` form that serves as the universal join key
 across the atelier ecosystem.

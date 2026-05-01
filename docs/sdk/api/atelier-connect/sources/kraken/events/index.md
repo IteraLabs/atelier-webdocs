@@ -15,4 +15,4 @@ are only available on Kraken Futures (separate endpoint + auth model).
 
 | Item | Summary |
 | --- | --- |
-| [`KrakenWssEvent`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/sources/kraken/events/enum.KrakenWssEvent.html) | Events produced by [`KrakenDecoder`](crate::sources::kraken::decoder::KrakenDecoder) from the WebSocket v2 feed. |
+| [`KrakenWssEvent`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/sources/kraken/events/enum.KrakenWssEvent.html) | Events produced by `KrakenDecoder` from the WebSocket v2 feed. |

@@ -52,4 +52,4 @@ name.  The mapping is exchange-specific:
 | Item | Summary |
 | --- | --- |
 | [`DataWorker`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/workers/data_worker/struct.DataWorker.html) | A single-symbol raw data ingestion worker. |
-| [`DataWorkerReport`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/workers/data_worker/struct.DataWorkerReport.html) | Summary statistics returned when a [`DataWorker`] finishes. |
+| [`DataWorkerReport`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/workers/data_worker/struct.DataWorkerReport.html) | Summary statistics returned when a `DataWorker` finishes. |

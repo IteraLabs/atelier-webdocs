@@ -3,7 +3,7 @@
 Worker registry for fleet-level state aggregation and control.
 Worker registry for fleet-level state aggregation and control.
 
-The [`WorkerRegistry`] is the single source of truth for "which workers
+The `WorkerRegistry` is the single source of truth for "which workers
 exist, what state are they in, and how do I talk to them."  It backs the
 Data Collector Workers sidebar in the dashboard.
 
@@ -29,7 +29,7 @@ Data Collector Workers sidebar in the dashboard.
 ```
 
 Each worker holds the receiving end of a command channel and periodically
-publishes its [`WorkerStatus`] through a `watch` channel.  The registry
+publishes its `WorkerStatus` through a `watch` channel.  The registry
 owns the sending halves and the `watch` receivers.
 
 !!! info "Skeleton API reference"

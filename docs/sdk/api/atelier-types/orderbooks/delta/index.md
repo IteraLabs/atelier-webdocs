@@ -3,8 +3,8 @@
 Incremental orderbook delta updates.
 Delta orderbook updates and normalization.
 
-Provides [`NormalizedDelta`] for exchange-agnostic representation of
-orderbook updates and [`OrderbookDelta`] for incremental state management.
+Provides `NormalizedDelta` for exchange-agnostic representation of
+orderbook updates and `OrderbookDelta` for incremental state management.
 
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_types::orderbooks::delta`. For full

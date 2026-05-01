@@ -18,5 +18,5 @@ Policy for disconnections
 
 | Item | Summary |
 | --- | --- |
-| [`classify_close_frame`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/clients/disconnect/fn.classify_close_frame.html) | Classify a WebSocket `CloseFrame` into a [`DisconnectReason`]. |
-| [`classify_tungstenite_error`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/clients/disconnect/fn.classify_tungstenite_error.html) | Classify a raw `tungstenite::Error` into a [`DisconnectReason`]. |
+| [`classify_close_frame`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/clients/disconnect/fn.classify_close_frame.html) | Classify a WebSocket `CloseFrame` into a `DisconnectReason`. |
+| [`classify_tungstenite_error`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/clients/disconnect/fn.classify_tungstenite_error.html) | Classify a raw `tungstenite::Error` into a `DisconnectReason`. |

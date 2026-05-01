@@ -2,7 +2,7 @@
 
 Binance orderbook initialisation pipeline stage.
 
-[`BookInitializer`] intercepts orderbook events from the WSS stream,
+`BookInitializer` intercepts orderbook events from the WSS stream,
 buffers them while fetching a REST depth snapshot, reconciles the
 two according to Binance's documented protocol, and then forwards
 a synthesised snapshot followed by validated deltas.

@@ -14,4 +14,4 @@ and MLE convergence diagnostics.
 
 | Item | Summary |
 | --- | --- |
-| [`HawkesError`](https://docs.rs/atelier-quant/0.0.10/atelier_quant/hawkes/errors/enum.HawkesError.html) | Errors that can arise when constructing, simulating, or estimating a [`HawkesProcess`](super::HawkesProcess). |
+| [`HawkesError`](https://docs.rs/atelier-quant/0.0.10/atelier_quant/hawkes/errors/enum.HawkesError.html) | Errors that can arise when constructing, simulating, or estimating a `HawkesProcess`. |

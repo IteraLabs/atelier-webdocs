@@ -3,8 +3,8 @@
 Multi-source market snapshot aggregation
 Market snapshot types and aggregation.
 
-Provides [`MarketSnapshot`] for joining multi-source market data at
-grid-aligned periods, and [`FlushResult`] for persistence tracking.
+Provides `MarketSnapshot` for joining multi-source market data at
+grid-aligned periods, and `FlushResult` for persistence tracking.
 
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_types::snapshots`. For full

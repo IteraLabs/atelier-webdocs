@@ -3,7 +3,7 @@
 Kraken WebSocket v2 decoder.
 
 Routes incoming JSON messages by the `"channel"` field to produce
-[`KrakenWssEvent`] variants.  Heartbeats and subscription
+`KrakenWssEvent` variants.  Heartbeats and subscription
 confirmations are silently consumed.
 
 !!! info "Skeleton API reference"
@@ -15,4 +15,4 @@ confirmations are silently consumed.
 
 | Item | Summary |
 | --- | --- |
-| [`KrakenDecoder`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/sources/kraken/decoder/struct.KrakenDecoder.html) | [`WssDecoder`] implementation for the Kraken WebSocket v2 API. |
+| [`KrakenDecoder`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/sources/kraken/decoder/struct.KrakenDecoder.html) | `WssDecoder` implementation for the Kraken WebSocket v2 API. |

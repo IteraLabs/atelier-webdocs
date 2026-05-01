@@ -4,10 +4,10 @@ Forecast evaluation and Monte-Carlo ensemble reduction.
 
 This module provides:
 
-- [`ForecastMetrics`] — MAE, RMSE computed from cumulative gap errors.
-- [`ensemble_forecast`] — run multiple stochastic paths and reduce
+- `ForecastMetrics` — MAE, RMSE computed from cumulative gap errors.
+- `ensemble_forecast` — run multiple stochastic paths and reduce
   to a consensus trajectory.
-- [`percentile`] — linearly interpolated quantile from a sorted slice.
+- `percentile` — linearly interpolated quantile from a sorted slice.
 
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_quant::forecast`. For full

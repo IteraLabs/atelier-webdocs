@@ -2,7 +2,7 @@
 
 Configuration for market snapshot collection pipelines.
 
-[`MarketSnapshotConfig`] is the top-level struct deserialized from a TOML
+`MarketSnapshotConfig` is the top-level struct deserialized from a TOML
 file that drives the `bybit_markets` (and future exchange) examples.
 
 # Example TOML
@@ -74,4 +74,4 @@ dir = "datasets/collected/bybit/market_snapshots"
 | Item | Summary |
 | --- | --- |
 | [`SyncMode`](https://docs.rs/atelier-types/0.0.10/atelier_types/config/markets/market_config/enum.SyncMode.html) | Which event type drives the synchronization grid clock. |
-| [`TimeUnit`](https://docs.rs/atelier-types/0.0.10/atelier_types/config/markets/market_config/enum.TimeUnit.html) | Time unit for [`UpdateFrequency`]. |
+| [`TimeUnit`](https://docs.rs/atelier-types/0.0.10/atelier_types/config/markets/market_config/enum.TimeUnit.html) | Time unit for `UpdateFrequency`. |

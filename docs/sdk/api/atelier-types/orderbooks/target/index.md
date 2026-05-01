@@ -3,7 +3,7 @@
 Orderbook loading targets and result types.
 Orderbook loading targets and update result types.
 
-Defines [`OrderbookTarget`] to specify which orderbook representation
+Defines `OrderbookTarget` to specify which orderbook representation
 to load, and result types for update operations.
 
 !!! info "Skeleton API reference"

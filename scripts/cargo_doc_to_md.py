@@ -76,6 +76,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -234,6 +235,46 @@ KIND_HEADING = {
 }
 
 
+# ── Rust intra-doc link sanitiser ─────────────────────────────────────
+#
+# Rust doc comments can carry intra-doc links that look fine to rustdoc
+# but blow up under mkdocs strict mode:
+#
+#   [`Foo`](crate::module::Bar)         ← Rust path target
+#   [`Foo`](atelier_types::config::Bar) ← cross-crate Rust path
+#   [`Foo`]                             ← unresolved bare reference
+#
+# mkdocs reads the `(...)` half as a relative URL and warns when it's
+# unresolvable. We strip the link target but keep the visible label
+# (the inline-code text) so the rendered Markdown still reads naturally.
+#
+# The patterns below match conservatively — only paths that look like
+# Rust idioms (segments separated by `::`, or beginning with crate /
+# self / super / std / atelier_*).
+_RUST_PATH = (
+    r"(?:crate|self|super|std|core|alloc|atelier_[a-z_]+)"
+    r"(?:::[a-zA-Z_][a-zA-Z0-9_]*)+"
+)
+_RUST_LINK_RE = re.compile(
+    rf"\[(`[^`]+`|[A-Za-z_][A-Za-z0-9_]*)\]\(\s*{_RUST_PATH}\s*\)"
+)
+_BARE_INTRA_RE = re.compile(r"\[(`[^`]+`)\](?!\()")
+
+
+def neutralize_rust_doc_links(text: str) -> str:
+    """Strip Rust intra-doc link targets, leaving the visible label.
+
+    `[\`Foo\`](crate::bar::Baz)` becomes `\`Foo\``.
+    `[\`Foo\`]` (bare) becomes `\`Foo\``.
+
+    Plain Markdown links (`[text](http://…)`) are untouched because
+    their URL doesn't match the Rust-path pattern.
+    """
+    text = _RUST_LINK_RE.sub(r"\1", text)
+    text = _BARE_INTRA_RE.sub(r"\1", text)
+    return text
+
+
 def first_sentence(docs: str) -> str:
     """Extract the first sentence of a `///` doc comment for the table summary."""
     if not docs:
@@ -242,9 +283,11 @@ def first_sentence(docs: str) -> str:
     # Take up to the first period that's followed by whitespace or end of string.
     for i, ch in enumerate(text):
         if ch == "." and (i + 1 == len(text) or text[i + 1].isspace()):
-            return text[: i + 1].replace("\n", " ").strip()
+            return neutralize_rust_doc_links(
+                text[: i + 1].replace("\n", " ").strip()
+            )
     # No period found — return the whole first paragraph, trimmed.
-    return text.replace("\n", " ").strip()[:200]
+    return neutralize_rust_doc_links(text.replace("\n", " ").strip()[:200])
 
 
 def render_per_crate(
@@ -325,7 +368,7 @@ def _render_module_page(
         "",
     ]
     if module_doc.strip():
-        lines.extend([module_doc.strip(), ""])
+        lines.extend([neutralize_rust_doc_links(module_doc.strip()), ""])
 
     lines.extend(
         [

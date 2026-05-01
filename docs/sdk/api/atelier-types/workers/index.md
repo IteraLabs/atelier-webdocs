@@ -3,7 +3,7 @@
 Worker identity types
 Worker identity types.
 
-[`WorkerId`] is the canonical, globally-unique identifier for a
+`WorkerId` is the canonical, globally-unique identifier for a
 market-data worker across the SDK, backend, and webapp.
 
 !!! info "Skeleton API reference"

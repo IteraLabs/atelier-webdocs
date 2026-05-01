@@ -2,9 +2,9 @@
 
 Multi-worker manifest configuration.
 
-[`WorkerManifest`] is the top-level config for multi-symbol collection
+`WorkerManifest` is the top-level config for multi-symbol collection
 runs.  It declares shared defaults and a list of per-symbol workers,
-each of which resolves into a full [`MarketSnapshotConfig`].
+each of which resolves into a full `MarketSnapshotConfig`.
 
 # Example TOML
 

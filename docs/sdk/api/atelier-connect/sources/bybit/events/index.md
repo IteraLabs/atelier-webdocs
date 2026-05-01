@@ -1,9 +1,9 @@
 # `atelier_connect::sources::bybit::events`
 
-Typed event variants emitted by [`BybitDecoder`](crate::sources::bybit::decoder::BybitDecoder).
+Typed event variants emitted by `BybitDecoder`.
 
 Each variant wraps the exchange-specific payload struct from
-[`crate::sources::bybit::responses`].
+`crate::sources::bybit::responses`.
 
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_connect::sources::bybit::events`. For full

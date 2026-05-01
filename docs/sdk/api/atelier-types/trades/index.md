@@ -12,7 +12,7 @@ Public Trades
 | Item | Summary |
 | --- | --- |
 | [`Trade`](https://docs.rs/atelier-types/0.0.10/atelier_types/trades/struct.Trade.html) | A single public trade observed on an exchange. |
-| [`TradeBuilder`](https://docs.rs/atelier-types/0.0.10/atelier_types/trades/struct.TradeBuilder.html) | Builder for constructing a [`Trade`] with validated fields. |
+| [`TradeBuilder`](https://docs.rs/atelier-types/0.0.10/atelier_types/trades/struct.TradeBuilder.html) | Builder for constructing a `Trade` with validated fields. |
 
 ## Enums
 

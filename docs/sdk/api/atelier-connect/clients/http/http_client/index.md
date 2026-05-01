@@ -10,4 +10,4 @@
 | Item | Summary |
 | --- | --- |
 | [`HttpClient`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/clients/http/http_client/struct.HttpClient.html) | Rate-limited HTTP client bound to a specific exchange. |
-| [`HttpClientBuilder`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/clients/http/http_client/struct.HttpClientBuilder.html) | Builder for [`HttpClient`]. |
+| [`HttpClientBuilder`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/clients/http/http_client/struct.HttpClientBuilder.html) | Builder for `HttpClient`. |

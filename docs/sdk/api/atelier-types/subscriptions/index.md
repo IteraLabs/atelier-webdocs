@@ -3,7 +3,7 @@
 Subscription lifecycle types
 Subscription lifecycle types.
 
-[`SubscriptionStatus`] tracks the state of a user's market-data
+`SubscriptionStatus` tracks the state of a user's market-data
 subscription.  It is the canonical definition shared by the SDK,
 backend, and any downstream consumers.
 

@@ -17,4 +17,4 @@ means shorts pay longs.
 | Item | Summary |
 | --- | --- |
 | [`FundingRate`](https://docs.rs/atelier-types/0.0.10/atelier_types/funding/struct.FundingRate.html) | A single funding rate observation. |
-| [`FundingRateBuilder`](https://docs.rs/atelier-types/0.0.10/atelier_types/funding/struct.FundingRateBuilder.html) | Builder for constructing a [`FundingRate`] with validated fields. |
+| [`FundingRateBuilder`](https://docs.rs/atelier-types/0.0.10/atelier_types/funding/struct.FundingRateBuilder.html) | Builder for constructing a `FundingRate` with validated fields. |

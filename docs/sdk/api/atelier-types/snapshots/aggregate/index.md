@@ -3,7 +3,7 @@
 Aggregated market statistics module.
 Aggregated per-snapshot statistics.
 
-[`MarketAggregate`] reduces each [`MarketSnapshot`] to 15 scalar features
+`MarketAggregate` reduces each `MarketSnapshot` to 15 scalar features
 (3 per data type), suitable for low-dimensional analysis, feature
 engineering, and efficient Parquet storage.
 
@@ -16,4 +16,4 @@ engineering, and efficient Parquet storage.
 
 | Item | Summary |
 | --- | --- |
-| [`MarketAggregate`](https://docs.rs/atelier-types/0.0.10/atelier_types/snapshots/aggregate/struct.MarketAggregate.html) | Aggregated statistics for a single [`MarketSnapshot`] period. |
+| [`MarketAggregate`](https://docs.rs/atelier-types/0.0.10/atelier_types/snapshots/aggregate/struct.MarketAggregate.html) | Aggregated statistics for a single `MarketSnapshot` period. |

@@ -1,11 +1,11 @@
 # `atelier_connect::config::workers::market_worker_config`
 
-Configuration for [`MarketWorker`](crate::workers::market_worker::MarketWorker).
+Configuration for `MarketWorker`.
 
-[`MarketWorkerConfig`] extends [`CommonWorkerFields`] with synchronisation
+`MarketWorkerConfig` extends `CommonWorkerFields` with synchronisation
 parameters (clock mode, grid spacing, flush threshold).
 
-[`MarketWorkerManifest`] is the multi-worker TOML manifest that resolves
+`MarketWorkerManifest` is the multi-worker TOML manifest that resolves
 into a `Vec<MarketWorkerConfig>`.
 
 !!! info "Skeleton API reference"
@@ -17,8 +17,8 @@ into a `Vec<MarketWorkerConfig>`.
 
 | Item | Summary |
 | --- | --- |
-| [`MarketWorkerCollect`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/config/workers/market_worker_config/struct.MarketWorkerCollect.html) | Shared collect instructions for a [`MarketWorkerManifest`]. |
-| [`MarketWorkerConfig`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/config/workers/market_worker_config/struct.MarketWorkerConfig.html) | Fully-resolved configuration for a single [`MarketWorker`](crate::workers::market_worker::MarketWorker). |
-| [`MarketWorkerEntry`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/config/workers/market_worker_config/struct.MarketWorkerEntry.html) | A single worker entry in a [`MarketWorkerManifest`]. |
-| [`MarketWorkerManifest`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/config/workers/market_worker_config/struct.MarketWorkerManifest.html) | Top-level TOML manifest for spawning multiple [`MarketWorker`](crate::workers::market_worker::MarketWorker)s. |
+| [`MarketWorkerCollect`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/config/workers/market_worker_config/struct.MarketWorkerCollect.html) | Shared collect instructions for a `MarketWorkerManifest`. |
+| [`MarketWorkerConfig`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/config/workers/market_worker_config/struct.MarketWorkerConfig.html) | Fully-resolved configuration for a single `MarketWorker`. |
+| [`MarketWorkerEntry`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/config/workers/market_worker_config/struct.MarketWorkerEntry.html) | A single worker entry in a `MarketWorkerManifest`. |
+| [`MarketWorkerManifest`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/config/workers/market_worker_config/struct.MarketWorkerManifest.html) | Top-level TOML manifest for spawning multiple `MarketWorker`s. |
 | [`SyncSection`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/config/workers/market_worker_config/struct.SyncSection.html) | Synchronisation parameters for the MarketWorker. |

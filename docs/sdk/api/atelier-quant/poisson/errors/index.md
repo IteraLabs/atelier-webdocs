@@ -13,4 +13,4 @@ Covers invalid rate parameters and MLE estimation failures.
 
 | Item | Summary |
 | --- | --- |
-| [`PoissonError`](https://docs.rs/atelier-quant/0.0.10/atelier_quant/poisson/errors/enum.PoissonError.html) | Errors that can arise when constructing, simulating, or estimating a [`PoissonProcess`](super::PoissonProcess). |
+| [`PoissonError`](https://docs.rs/atelier-quant/0.0.10/atelier_quant/poisson/errors/enum.PoissonError.html) | Errors that can arise when constructing, simulating, or estimating a `PoissonProcess`. |

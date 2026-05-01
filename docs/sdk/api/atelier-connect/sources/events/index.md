@@ -2,10 +2,10 @@
 
 Unified exchange event wrapper.
 
-[`ExchangeEvent`] is the single event type that flows through the worker
+`ExchangeEvent` is the single event type that flows through the worker
 pipeline. Each exchange decoder produces its own native event type, which
 is then wrapped in an `ExchangeEvent` variant before being sent to the
-[`DataWorker`](crate::workers::data_worker::DataWorker) event loop.
+`DataWorker` event loop.
 
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_connect::sources::events`. For full

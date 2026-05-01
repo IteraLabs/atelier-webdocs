@@ -2,7 +2,7 @@
 
 Model artifact schema for inter-arrival forecasting.
 
-The [`ModelArtifact`] struct is written by `inter_fit` (as JSON) and
+The `ModelArtifact` struct is written by `inter_fit` (as JSON) and
 consumed by `inter_serve` to initialise forecasting parameters.
 
 !!! info "Skeleton API reference"

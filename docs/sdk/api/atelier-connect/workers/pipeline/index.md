@@ -1,11 +1,11 @@
 # `atelier_connect::workers::pipeline`
 
 Composable event pipeline between ingestion and workers.
-Composable event pipeline between [`IngestionCore`] and workers.
+Composable event pipeline between `IngestionCore` and workers.
 
-The pipeline transforms or filters [`TopicMessage`]s flowing from
+The pipeline transforms or filters `TopicMessage`s flowing from
 the ingestion layer to the worker event loop.  For most exchanges
-the pipeline is [`PassthroughPipeline`] (identity).  For exchanges
+the pipeline is `PassthroughPipeline` (identity).  For exchanges
 that require multi-source coordination (e.g. Binance REST snapshot
 + WSS deltas) a specialised stage is interposed.
 

@@ -3,7 +3,7 @@
 Core orderbook data structure and operations.
 Core orderbook structure and operations.
 
-Provides the [`Orderbook`] data structure for managing bid/ask levels
+Provides the `Orderbook` data structure for managing bid/ask levels
 and orders, along with utility functions for decimal/f64 conversion.
 
 !!! info "Skeleton API reference"

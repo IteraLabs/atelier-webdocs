@@ -2,7 +2,7 @@
 
 Shared configuration types for all worker variants.
 
-[`CommonWorkerFields`] captures the configuration knobs that every worker
+`CommonWorkerFields` captures the configuration knobs that every worker
 needs regardless of whether it synchronises events or not.
 
 !!! info "Skeleton API reference"
@@ -14,7 +14,7 @@ needs regardless of whether it synchronises events or not.
 
 | Item | Summary |
 | --- | --- |
-| [`CommonWorkerFields`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/config/workers/common/struct.CommonWorkerFields.html) | Configuration fields shared by both [`DataWorker`](crate::workers::DataWorker) and [`MarketWorker`](crate::workers::MarketWorker). |
+| [`CommonWorkerFields`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/config/workers/common/struct.CommonWorkerFields.html) | Configuration fields shared by both `DataWorker` and `MarketWorker`. |
 | [`ManifestMetadata`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/config/workers/common/struct.ManifestMetadata.html) | Identity metadata injected into a manifest received over the wire (via the Gateway's `CommandChannel`). |
 | [`ReconnectSection`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/config/workers/common/struct.ReconnectSection.html) | TOML-exposed reconnection knobs. |
 

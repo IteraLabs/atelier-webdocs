@@ -11,7 +11,7 @@ where the survival function is:
 $$S(s) = \exp\!\bigl(-\mu\,s - K(s)\bigr)$$
 
 and $K(s)$ is the integrated intensity contribution from the kernel
-([`ExcitationKernel::integrated_intensity_contribution`](super::kernel::ExcitationKernel::integrated_intensity_contribution)).
+(`ExcitationKernel::integrated_intensity_contribution`).
 
 We apply the substitution $x = \mu \cdot s$ so the integration
 domain becomes $[0, x_{\max}]$ with $x_{\max} \approx 40$ (since

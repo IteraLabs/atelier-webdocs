@@ -17,4 +17,4 @@ automatically closed at market prices.
 | Item | Summary |
 | --- | --- |
 | [`Liquidation`](https://docs.rs/atelier-types/0.0.10/atelier_types/liquidations/struct.Liquidation.html) | A single forced-liquidation event observed on an exchange. |
-| [`LiquidationBuilder`](https://docs.rs/atelier-types/0.0.10/atelier_types/liquidations/struct.LiquidationBuilder.html) | Builder for constructing a [`Liquidation`] with validated fields. |
+| [`LiquidationBuilder`](https://docs.rs/atelier-types/0.0.10/atelier_types/liquidations/struct.LiquidationBuilder.html) | Builder for constructing a `Liquidation` with validated fields. |

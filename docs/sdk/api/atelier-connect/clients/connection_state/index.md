@@ -3,8 +3,8 @@
 Formal connection state machine for the data worker WSS lifecycle.
 Formal connection state machine for the data worker WSS lifecycle.
 
-[`ConnectionState`](crate::clients::connection_state::ConnectionState) models the discrete phases a WebSocket connection
-passes through.  The [`ConnectionManager`](crate::clients::connection_manager::ConnectionManager)
+`ConnectionState` models the discrete phases a WebSocket connection
+passes through.  The `ConnectionManager`
 drives transitions and emits structured tracing events at each boundary.
 
 # State diagram

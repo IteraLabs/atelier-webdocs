@@ -2,15 +2,15 @@
 
 Excitation kernel abstraction for Hawkes processes.
 
-The [`ExcitationKernel`] trait decouples the Hawkes process simulation
+The `ExcitationKernel` trait decouples the Hawkes process simulation
 and forecasting machinery from a specific kernel shape.  Any kernel
 that can express its contribution through a recursive *state* variable
 — initialised once from history in O(n), then maintained in O(1) —
-can be plugged into [`HawkesProcess<K>`](super::HawkesProcess).
+can be plugged into `HawkesProcess<K>`.
 
 ## Provided implementation
 
-[`ExponentialKernel`] — the classical $\phi(t) = \alpha e^{-\beta t}$
+`ExponentialKernel` — the classical $\phi(t) = \alpha e^{-\beta t}$
 kernel, whose state is a single `f64` (the recursive auxiliary $A$).
 
 !!! info "Skeleton API reference"

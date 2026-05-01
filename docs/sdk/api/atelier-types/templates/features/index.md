@@ -12,7 +12,7 @@ Feature definition templates.
 | Item | Summary |
 | --- | --- |
 | [`FeatureConfig`](https://docs.rs/atelier-types/0.0.10/atelier_types/templates/features/struct.FeatureConfig.html) | Configuration for a single feature within a template. |
-| [`FeatureConfigBuilder`](https://docs.rs/atelier-types/0.0.10/atelier_types/templates/features/struct.FeatureConfigBuilder.html) | Builder for constructing [`FeatureConfig`] instances with validation. |
+| [`FeatureConfigBuilder`](https://docs.rs/atelier-types/0.0.10/atelier_types/templates/features/struct.FeatureConfigBuilder.html) | Builder for constructing `FeatureConfig` instances with validation. |
 
 ## Enums
 

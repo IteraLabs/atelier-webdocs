@@ -2,9 +2,9 @@
 
 Binance spot public WebSocket client.
 
-[`BinanceWssClient`] handles Binance-specific connection, subscription
+`BinanceWssClient` handles Binance-specific connection, subscription
 framing, and heartbeat protocol. Message decoding is delegated to
-[`BinanceDecoder`] via the [`WssDecoder`] trait.
+`BinanceDecoder` via the `WssDecoder` trait.
 
 Public market data streams do **not** require authentication.
 

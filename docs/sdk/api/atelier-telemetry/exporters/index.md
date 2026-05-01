@@ -2,7 +2,7 @@
 
 Exporter configuration and construction.
 
-Provides [`ExporterKind`] for selecting between OTLP (production) and
+Provides `ExporterKind` for selecting between OTLP (production) and
 stdout (development) metric exporters, plus builder functions for
 constructing the corresponding `MeterProvider`.
 
@@ -34,4 +34,4 @@ let provider = build_meter_provider(
 
 | Item | Summary |
 | --- | --- |
-| [`build_meter_provider`](https://docs.rs/atelier-telemetry/0.0.10/atelier_telemetry/exporters/fn.build_meter_provider.html) | Build a [`SdkMeterProvider`] with the specified exporter and collection interval. |
+| [`build_meter_provider`](https://docs.rs/atelier-telemetry/0.0.10/atelier_telemetry/exporters/fn.build_meter_provider.html) | Build a `SdkMeterProvider` with the specified exporter and collection interval. |

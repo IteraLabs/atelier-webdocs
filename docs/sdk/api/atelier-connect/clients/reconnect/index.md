@@ -5,15 +5,15 @@ Reconnection policy, error classification, and connection health monitoring.
 
 This module provides the building blocks for resilient WebSocket connections:
 
-- [`DisconnectReason`](crate::clients::disconnect::DisconnectReason) — a typed classification of *why* a connection ended,
+- `DisconnectReason` — a typed classification of *why* a connection ended,
   derived from WebSocket close frames, transport errors, or application-level
   signals (stale connection, receiver drop).
 
-- [`ReconnectPolicy`](crate::clients::reconnect::ReconnectPolicy) — a stateful backoff engine with **jittered exponential
+- `ReconnectPolicy` — a stateful backoff engine with **jittered exponential
   backoff**, a configurable **max-attempts** limit, and a three-state **circuit
   breaker** (`Closed → Open → HalfOpen → Closed`).
 
-- [`HealthMonitor`](crate::clients::reconnect::HealthMonitor) — stale-connection detection based on a per-exchange
+- `HealthMonitor` — stale-connection detection based on a per-exchange
   silence timeout.  Designed to slot into a `tokio::select!` loop via its
   `deadline()` method.
 
@@ -51,14 +51,14 @@ draw from `[4.0, 6.0)` seconds.
 | --- | --- |
 | [`HealthMonitor`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/clients/reconnect/struct.HealthMonitor.html) | Stale-connection detector. |
 | [`ReconnectPolicy`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/clients/reconnect/struct.ReconnectPolicy.html) | Stateful reconnection policy with jittered exponential backoff and a circuit breaker. |
-| [`ReconnectPolicyBuilder`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/clients/reconnect/struct.ReconnectPolicyBuilder.html) | Builder for [`ReconnectPolicy`]. |
+| [`ReconnectPolicyBuilder`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/clients/reconnect/struct.ReconnectPolicyBuilder.html) | Builder for `ReconnectPolicy`. |
 
 ## Enums
 
 | Item | Summary |
 | --- | --- |
 | [`CircuitState`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/clients/reconnect/enum.CircuitState.html) | The three states of the circuit breaker. |
-| [`ReconnectAction`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/clients/reconnect/enum.ReconnectAction.html) | What the caller should do after consulting the [`ReconnectPolicy`]. |
+| [`ReconnectAction`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/clients/reconnect/enum.ReconnectAction.html) | What the caller should do after consulting the `ReconnectPolicy`. |
 
 ## Traits
 

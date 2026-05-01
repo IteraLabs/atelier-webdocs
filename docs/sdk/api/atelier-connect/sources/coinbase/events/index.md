@@ -15,4 +15,4 @@ Coinbase INTX (perpetual futures).
 
 | Item | Summary |
 | --- | --- |
-| [`CoinbaseWssEvent`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/sources/coinbase/events/enum.CoinbaseWssEvent.html) | Events produced by [`CoinbaseDecoder`](crate::sources::coinbase::decoder::CoinbaseDecoder) from the Advanced Trade WSS feed. |
+| [`CoinbaseWssEvent`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/sources/coinbase/events/enum.CoinbaseWssEvent.html) | Events produced by `CoinbaseDecoder` from the Advanced Trade WSS feed. |

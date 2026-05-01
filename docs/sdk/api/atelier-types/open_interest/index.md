@@ -17,4 +17,4 @@ entering or exiting the market.
 | Item | Summary |
 | --- | --- |
 | [`OpenInterest`](https://docs.rs/atelier-types/0.0.10/atelier_types/open_interest/struct.OpenInterest.html) | A single open interest observation. |
-| [`OpenInterestBuilder`](https://docs.rs/atelier-types/0.0.10/atelier_types/open_interest/struct.OpenInterestBuilder.html) | Builder for constructing an [`OpenInterest`] with validated fields. |
+| [`OpenInterestBuilder`](https://docs.rs/atelier-types/0.0.10/atelier_types/open_interest/struct.OpenInterestBuilder.html) | Builder for constructing an `OpenInterest` with validated fields. |

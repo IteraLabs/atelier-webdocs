@@ -2,9 +2,9 @@
 
 Coinbase Advanced Trade WebSocket client.
 
-[`CoinbaseWssClient`] handles Coinbase-specific connection, subscription
+`CoinbaseWssClient` handles Coinbase-specific connection, subscription
 framing, and heartbeat protocol. Message decoding is delegated to
-[`CoinbaseDecoder`] via the [`WssDecoder`] trait.
+`CoinbaseDecoder` via the `WssDecoder` trait.
 
 Public market data channels (`level2`, `market_trades`) do **not**
 require authentication on Coinbase Advanced Trade (beta).

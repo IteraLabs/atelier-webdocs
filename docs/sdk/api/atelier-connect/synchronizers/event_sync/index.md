@@ -2,8 +2,8 @@
 
 Market-event-aligned snapshot synchronizer.
 
-Unlike the grid-based [`MarketSynchronizer`](super::MarketSynchronizer),
-[`EventSynchronizer`] emits a [`MarketSnapshot`] each time a designated
+Unlike the grid-based `MarketSynchronizer`,
+`EventSynchronizer` emits a `MarketSnapshot` each time a designated
 **reference market event** is received. Reference events are configurable
 and can be any combination of: new orderbook delta, new trade, or new
 liquidation — all originating from the exchange WSS feed.

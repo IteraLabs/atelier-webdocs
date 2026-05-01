@@ -2,9 +2,9 @@
 
 Kraken WebSocket v2 client.
 
-[`KrakenWssClient`] handles Kraken-specific connection, subscription
+`KrakenWssClient` handles Kraken-specific connection, subscription
 framing, and heartbeat handling.  Message decoding is delegated to
-[`KrakenDecoder`] via the [`WssDecoder`] trait.
+`KrakenDecoder` via the `WssDecoder` trait.
 
 Public market data channels (`book`, `trade`) do **not** require
 authentication on Kraken WebSocket v2.

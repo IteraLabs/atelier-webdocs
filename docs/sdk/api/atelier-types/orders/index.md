@@ -19,7 +19,7 @@ encodes side, type, and timestamp into a single sortable value.
 | Item | Summary |
 | --- | --- |
 | [`Order`](https://docs.rs/atelier-types/0.0.10/atelier_types/orders/struct.Order.html) | A single order in the orderbook. |
-| [`OrderBuilder`](https://docs.rs/atelier-types/0.0.10/atelier_types/orders/struct.OrderBuilder.html) | Builder for constructing an [`Order`] with validated fields. |
+| [`OrderBuilder`](https://docs.rs/atelier-types/0.0.10/atelier_types/orders/struct.OrderBuilder.html) | Builder for constructing an `Order` with validated fields. |
 | [`OrderId`](https://docs.rs/atelier-types/0.0.10/atelier_types/orders/struct.OrderId.html) | Compact order identifier that bit-packs side, type, and timestamp into a single `u64`. |
 
 ## Enums

@@ -3,11 +3,11 @@
 Multi-source time synchronizer with configurable clock modes.
 
 Aligns orderbook snapshots, trades, liquidations, funding rates, and open
-interest to a uniform time grid. Produces [`MarketSnapshot`] at each period.
+interest to a uniform time grid. Produces `MarketSnapshot` at each period.
 
 # Clock Modes
 
-The synchronizer supports four clock modes via [`ClockMode`]:
+The synchronizer supports four clock modes via `ClockMode`:
 
 - **OrderbookDriven** (default): Grid periods are triggered by orderbook
   timestamp crossings, matching the original `MarketSynchronizer` behavior.
@@ -60,7 +60,7 @@ let snapshots: Vec<MarketSnapshot> = sync.drain();
 
 | Item | Summary |
 | --- | --- |
-| [`MarketSynchronizer`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/synchronizers/market_sync/struct.MarketSynchronizer.html) | Multi-source time synchronizer that produces [`MarketSnapshot`] at each grid period, combining all data sources. |
+| [`MarketSynchronizer`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/synchronizers/market_sync/struct.MarketSynchronizer.html) | Multi-source time synchronizer that produces `MarketSnapshot` at each grid period, combining all data sources. |
 
 ## Enums
 

@@ -9,8 +9,8 @@
 
 | Item | Summary |
 | --- | --- |
-| [`WssClient`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/clients/wss/wss_client/struct.WssClient.html) | Transport-level WebSocket client that pumps decoded events into an [`mpsc`] channel. |
-| [`WssClientBuilder`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/clients/wss/wss_client/struct.WssClientBuilder.html) | Builder for [`WssClient<D>`]. |
+| [`WssClient`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/clients/wss/wss_client/struct.WssClient.html) | Transport-level WebSocket client that pumps decoded events into an `mpsc` channel. |
+| [`WssClientBuilder`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/clients/wss/wss_client/struct.WssClientBuilder.html) | Builder for `WssClient<D>`. |
 
 ## Traits
 
