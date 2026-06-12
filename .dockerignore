@@ -1,7 +1,9 @@
 # Keep the build context lean. Anything not copied into the image
 # stays in this list.
 
-.git/
+# .git/ is deliberately NOT ignored: the in-image `mkdocs build --strict`
+# needs it for git-revision-date-localized, which warns (and therefore
+# fails the strict build) without a git directory.
 .github/
 .venv/
 venv/

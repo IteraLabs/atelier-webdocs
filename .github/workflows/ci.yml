@@ -49,12 +49,13 @@ jobs:
 
       - name: Link check (internal only)
         # --no-warnings keeps the log focused on actual broken links.
-        # External links are checked in a separate, non-blocking job
-        # so flaky third-party servers don't fail the PR.
+        # `--check-extern` is a boolean flag in current linkchecker —
+        # omitting it skips external URLs, which are checked in a
+        # separate, non-blocking job so flaky third-party servers
+        # don't fail the PR.
         run: |
           linkchecker \
             --no-warnings \
-            --check-extern=0 \
             site/index.html
 
       - name: Upload site artifact
