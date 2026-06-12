@@ -18,22 +18,22 @@ IngestionCore ──mpsc──▶ EventPipeline ──mpsc──▶ Worker
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_connect::workers::pipeline`. For full
     signatures, source links, and trait implementations, see the
-    [docs.rs page for this module](https://docs.rs/atelier-connect/0.0.10/atelier_connect/workers/pipeline/).
+    [docs.rs page for this module](https://docs.rs/atelier-connect/latest/atelier_connect/workers/pipeline/).
 
 ## Structs
 
 | Item | Summary |
 | --- | --- |
-| [`PassthroughPipeline`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/workers/pipeline/struct.PassthroughPipeline.html) | Identity pipeline — forwards all events unchanged. |
+| [`PassthroughPipeline`](https://docs.rs/atelier-connect/latest/atelier_connect/workers/pipeline/struct.PassthroughPipeline.html) | Identity pipeline — forwards all events unchanged. |
 
 ## Traits
 
 | Item | Summary |
 | --- | --- |
-| [`EventPipeline`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/workers/pipeline/trait.EventPipeline.html) | A composable transform stage in the event pipeline. |
+| [`EventPipeline`](https://docs.rs/atelier-connect/latest/atelier_connect/workers/pipeline/trait.EventPipeline.html) | A composable transform stage in the event pipeline. |
 
 ## Functions
 
 | Item | Summary |
 | --- | --- |
-| [`build_pipeline`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/workers/pipeline/fn.build_pipeline.html) | Construct the appropriate pipeline for the given exchange. |
+| [`build_pipeline`](https://docs.rs/atelier-connect/latest/atelier_connect/workers/pipeline/fn.build_pipeline.html) | Construct the appropriate pipeline for the given exchange. |

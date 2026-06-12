@@ -1,6 +1,7 @@
 # API reference
 
 Skeleton API reference for the **atelier-sdk v0.0.10** workspace.
+Out-links target docs.rs `/latest/` so they continue to resolve as the SDK iterates ahead of any single pinned version.
 Every public item has a row in its module's table with a one-line
 summary and a link to docs.rs for the full signature.
 

@@ -9,10 +9,10 @@ grid-aligned periods, and `FlushResult` for persistence tracking.
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_types::snapshots`. For full
     signatures, source links, and trait implementations, see the
-    [docs.rs page for this module](https://docs.rs/atelier-types/0.0.10/atelier_types/snapshots/).
+    [docs.rs page for this module](https://docs.rs/atelier-types/latest/atelier_types/snapshots/).
 
 ## Structs
 
 | Item | Summary |
 | --- | --- |
-| [`FlushResult`](https://docs.rs/atelier-types/0.0.10/atelier_types/snapshots/struct.FlushResult.html) | Result of flushing synchronized market data to persistent storage. |
+| [`FlushResult`](https://docs.rs/atelier-types/latest/atelier_types/snapshots/struct.FlushResult.html) | Result of flushing synchronized market data to persistent storage. |

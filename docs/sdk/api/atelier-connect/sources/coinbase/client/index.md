@@ -12,10 +12,10 @@ require authentication on Coinbase Advanced Trade (beta).
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_connect::sources::coinbase::client`. For full
     signatures, source links, and trait implementations, see the
-    [docs.rs page for this module](https://docs.rs/atelier-connect/0.0.10/atelier_connect/sources/coinbase/client/).
+    [docs.rs page for this module](https://docs.rs/atelier-connect/latest/atelier_connect/sources/coinbase/client/).
 
 ## Structs
 
 | Item | Summary |
 | --- | --- |
-| [`CoinbaseWssClient`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/sources/coinbase/client/struct.CoinbaseWssClient.html) | Coinbase Advanced Trade WebSocket client. |
+| [`CoinbaseWssClient`](https://docs.rs/atelier-connect/latest/atelier_connect/sources/coinbase/client/struct.CoinbaseWssClient.html) | Coinbase Advanced Trade WebSocket client. |

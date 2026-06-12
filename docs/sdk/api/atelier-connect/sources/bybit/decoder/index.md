@@ -21,10 +21,10 @@ channel:
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_connect::sources::bybit::decoder`. For full
     signatures, source links, and trait implementations, see the
-    [docs.rs page for this module](https://docs.rs/atelier-connect/0.0.10/atelier_connect/sources/bybit/decoder/).
+    [docs.rs page for this module](https://docs.rs/atelier-connect/latest/atelier_connect/sources/bybit/decoder/).
 
 ## Structs
 
 | Item | Summary |
 | --- | --- |
-| [`BybitDecoder`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/sources/bybit/decoder/struct.BybitDecoder.html) | `WssDecoder` implementation for the Bybit unified v5 WebSocket API. |
+| [`BybitDecoder`](https://docs.rs/atelier-connect/latest/atelier_connect/sources/bybit/decoder/struct.BybitDecoder.html) | `WssDecoder` implementation for the Bybit unified v5 WebSocket API. |

@@ -23,10 +23,10 @@ The canonical form matches the backend DB `pair` column convention
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_types::trading_pair`. For full
     signatures, source links, and trait implementations, see the
-    [docs.rs page for this module](https://docs.rs/atelier-types/0.0.10/atelier_types/trading_pair/).
+    [docs.rs page for this module](https://docs.rs/atelier-types/latest/atelier_types/trading_pair/).
 
 ## Structs
 
 | Item | Summary |
 | --- | --- |
-| [`TradingPair`](https://docs.rs/atelier-types/0.0.10/atelier_types/trading_pair/struct.TradingPair.html) | Canonical trading pair — base and quote stored separately, uppercase. |
+| [`TradingPair`](https://docs.rs/atelier-types/latest/atelier_types/trading_pair/struct.TradingPair.html) | Canonical trading pair — base and quote stored separately, uppercase. |

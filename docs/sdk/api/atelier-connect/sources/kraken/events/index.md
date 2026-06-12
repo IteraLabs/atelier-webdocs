@@ -9,10 +9,10 @@ are only available on Kraken Futures (separate endpoint + auth model).
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_connect::sources::kraken::events`. For full
     signatures, source links, and trait implementations, see the
-    [docs.rs page for this module](https://docs.rs/atelier-connect/0.0.10/atelier_connect/sources/kraken/events/).
+    [docs.rs page for this module](https://docs.rs/atelier-connect/latest/atelier_connect/sources/kraken/events/).
 
 ## Enums
 
 | Item | Summary |
 | --- | --- |
-| [`KrakenWssEvent`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/sources/kraken/events/enum.KrakenWssEvent.html) | Events produced by `KrakenDecoder` from the WebSocket v2 feed. |
+| [`KrakenWssEvent`](https://docs.rs/atelier-connect/latest/atelier_connect/sources/kraken/events/enum.KrakenWssEvent.html) | Events produced by `KrakenDecoder` from the WebSocket v2 feed. |

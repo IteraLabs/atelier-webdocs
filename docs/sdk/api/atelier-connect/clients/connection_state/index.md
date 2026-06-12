@@ -41,16 +41,16 @@ drives transitions and emits structured tracing events at each boundary.
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_connect::clients::connection_state`. For full
     signatures, source links, and trait implementations, see the
-    [docs.rs page for this module](https://docs.rs/atelier-connect/0.0.10/atelier_connect/clients/connection_state/).
+    [docs.rs page for this module](https://docs.rs/atelier-connect/latest/atelier_connect/clients/connection_state/).
 
 ## Structs
 
 | Item | Summary |
 | --- | --- |
-| [`StateTransition`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/clients/connection_state/struct.StateTransition.html) | Timestamped record of a single state transition. |
+| [`StateTransition`](https://docs.rs/atelier-connect/latest/atelier_connect/clients/connection_state/struct.StateTransition.html) | Timestamped record of a single state transition. |
 
 ## Enums
 
 | Item | Summary |
 | --- | --- |
-| [`ConnectionState`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/clients/connection_state/enum.ConnectionState.html) | Discrete connection lifecycle phase. |
+| [`ConnectionState`](https://docs.rs/atelier-connect/latest/atelier_connect/clients/connection_state/enum.ConnectionState.html) | Discrete connection lifecycle phase. |

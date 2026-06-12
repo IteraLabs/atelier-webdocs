@@ -10,11 +10,11 @@ automatically closed at market prices.
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_types::liquidations`. For full
     signatures, source links, and trait implementations, see the
-    [docs.rs page for this module](https://docs.rs/atelier-types/0.0.10/atelier_types/liquidations/).
+    [docs.rs page for this module](https://docs.rs/atelier-types/latest/atelier_types/liquidations/).
 
 ## Structs
 
 | Item | Summary |
 | --- | --- |
-| [`Liquidation`](https://docs.rs/atelier-types/0.0.10/atelier_types/liquidations/struct.Liquidation.html) | A single forced-liquidation event observed on an exchange. |
-| [`LiquidationBuilder`](https://docs.rs/atelier-types/0.0.10/atelier_types/liquidations/struct.LiquidationBuilder.html) | Builder for constructing a `Liquidation` with validated fields. |
+| [`Liquidation`](https://docs.rs/atelier-types/latest/atelier_types/liquidations/struct.Liquidation.html) | A single forced-liquidation event observed on an exchange. |
+| [`LiquidationBuilder`](https://docs.rs/atelier-types/latest/atelier_types/liquidations/struct.LiquidationBuilder.html) | Builder for constructing a `Liquidation` with validated fields. |

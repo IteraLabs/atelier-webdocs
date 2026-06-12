@@ -94,5 +94,5 @@ endpoint = "http://otel-collector:4317"
 ## Where to go next
 
 - [API reference for `atelier-telemetry`](../api/atelier-telemetry/index.md)
-- [docs.rs/atelier-telemetry](https://docs.rs/atelier-telemetry/0.0.10/atelier_telemetry/) — full signatures.
+- [docs.rs/atelier-telemetry](https://docs.rs/atelier-telemetry/latest/atelier_telemetry/) — full signatures.
 - [`atelier-connect`](../connect/index.md) — the primary caller of `IngestionMeters`.

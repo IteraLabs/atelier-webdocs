@@ -10,10 +10,10 @@ backend, and any downstream consumers.
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_types::subscriptions`. For full
     signatures, source links, and trait implementations, see the
-    [docs.rs page for this module](https://docs.rs/atelier-types/0.0.10/atelier_types/subscriptions/).
+    [docs.rs page for this module](https://docs.rs/atelier-types/latest/atelier_types/subscriptions/).
 
 ## Enums
 
 | Item | Summary |
 | --- | --- |
-| [`SubscriptionStatus`](https://docs.rs/atelier-types/0.0.10/atelier_types/subscriptions/enum.SubscriptionStatus.html) | Lifecycle state of a market-data subscription. |
+| [`SubscriptionStatus`](https://docs.rs/atelier-types/latest/atelier_types/subscriptions/enum.SubscriptionStatus.html) | Lifecycle state of a market-data subscription. |

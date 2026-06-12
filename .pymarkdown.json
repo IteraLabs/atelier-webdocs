@@ -1,0 +1,59 @@
+{
+  "//": [
+    "Configuration for pymarkdownlnt — the markdown linter run by `make lint`.",
+    "We disable rules that fight against mkdocs Material conventions or our",
+    "deliberate docs-site style. Anything not listed here keeps the default.",
+    "Reference: https://pymarkdown.readthedocs.io/en/latest/plugins/",
+    "",
+    "Rationale per disabled rule is below. Enable any of these by removing",
+    "the entry; the default is `enabled: true`."
+  ],
+
+  "plugins": {
+
+    "line-length": {
+      "//": "Tables for env vars / API fields naturally exceed 80 chars. Code blocks too.",
+      "enabled": false
+    },
+
+    "no-inline-html": {
+      "//": "Material admonitions and theme partials emit/accept HTML in markdown.",
+      "enabled": false
+    },
+
+    "no-bare-urls": {
+      "//": "We sometimes write bare URLs inside admonitions or table cells.",
+      "enabled": false
+    },
+
+    "first-line-heading": {
+      "//": "Tutorial pages start with YAML frontmatter (`---`), not an H1.",
+      "enabled": false
+    },
+
+    "no-duplicate-heading": {
+      "//": "Per-crate API skeleton pages legitimately repeat 'Quick links', 'Modules' across crates.",
+      "enabled": false
+    },
+
+    "no-trailing-punctuation": {
+      "//": "Some headings are sentences ending in '?' or '.' (e.g. FAQ-style).",
+      "enabled": false
+    },
+
+    "no-emphasis-as-heading": {
+      "//": "We use bold spans (e.g. `**filename.toml**`) as inline labels above code blocks — pymarkdown reads these as 'should be a heading', they shouldn't.",
+      "enabled": false
+    },
+
+    "code-block-style": {
+      "//": "We use both fenced and indented code in different contexts intentionally.",
+      "enabled": false
+    },
+
+    "list-indent": {
+      "//": "Material admonitions accept either 2- or 4-space indented list items.",
+      "enabled": false
+    }
+  }
+}

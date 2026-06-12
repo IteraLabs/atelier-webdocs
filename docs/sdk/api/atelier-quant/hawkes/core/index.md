@@ -42,10 +42,10 @@ $\beta$: Decay rate (how quickly the excitement diminishes).\
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_quant::hawkes::core`. For full
     signatures, source links, and trait implementations, see the
-    [docs.rs page for this module](https://docs.rs/atelier-quant/0.0.10/atelier_quant/hawkes/core/).
+    [docs.rs page for this module](https://docs.rs/atelier-quant/latest/atelier_quant/hawkes/core/).
 
 ## Structs
 
 | Item | Summary |
 | --- | --- |
-| [`HawkesProcess`](https://docs.rs/atelier-quant/0.0.10/atelier_quant/hawkes/core/struct.HawkesProcess.html) | Univariate Hawkes process parameterised by an excitation kernel `K`. |
+| [`HawkesProcess`](https://docs.rs/atelier-quant/latest/atelier_quant/hawkes/core/struct.HawkesProcess.html) | Univariate Hawkes process parameterised by an excitation kernel `K`. |

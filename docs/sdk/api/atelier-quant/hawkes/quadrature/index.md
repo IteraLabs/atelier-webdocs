@@ -26,11 +26,11 @@ We use adaptive Simpson's rule for robust accuracy.
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_quant::hawkes::quadrature`. For full
     signatures, source links, and trait implementations, see the
-    [docs.rs page for this module](https://docs.rs/atelier-quant/0.0.10/atelier_quant/hawkes/quadrature/).
+    [docs.rs page for this module](https://docs.rs/atelier-quant/latest/atelier_quant/hawkes/quadrature/).
 
 ## Functions
 
 | Item | Summary |
 | --- | --- |
-| [`adaptive_simpson`](https://docs.rs/atelier-quant/0.0.10/atelier_quant/hawkes/quadrature/fn.adaptive_simpson.html) | Adaptive Simpson's quadrature of `f` on `[a, b]`. |
-| [`conditional_mean_gap`](https://docs.rs/atelier-quant/0.0.10/atelier_quant/hawkes/quadrature/fn.conditional_mean_gap.html) | Compute the conditional expected gap $E[\Delta \mid \text{state}]$. |
+| [`adaptive_simpson`](https://docs.rs/atelier-quant/latest/atelier_quant/hawkes/quadrature/fn.adaptive_simpson.html) | Adaptive Simpson's quadrature of `f` on `[a, b]`. |
+| [`conditional_mean_gap`](https://docs.rs/atelier-quant/latest/atelier_quant/hawkes/quadrature/fn.conditional_mean_gap.html) | Compute the conditional expected gap $E[\Delta \mid \text{state}]$. |

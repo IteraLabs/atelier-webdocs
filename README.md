@@ -52,7 +52,7 @@ atelier-webdocs/
 ├── mkdocs.yml                    # site config (theme, nav, plugins, mike, validation)
 ├── SDK_VERSION                   # single source of truth for the documented SDK version
 ├── requirements.txt              # runtime deps (mkdocs, material, mike, plugins)
-├── requirements-dev.txt          # linters + linkcheck
+├── requirements-dev.txt          # markdown lint + linkchecker (audit-only)
 ├── docs/
 │   ├── index.md                  # landing
 │   ├── about.md                  # site narrative
@@ -165,10 +165,18 @@ Pre-generating and committing means:
 ## Linting, link-checking, strict mode
 
 ```bash
-make build       # strict mode catches broken links + orphan files at build time
-make linkcheck   # full HTML link sweep against ./site
-make lint        # markdown linter + linkcheck
+make build                    # strict mode catches broken internal links + missing files (the gate)
+make lint                     # markdown lint over docs/ — fast, no network
+make linkcheck                # on-demand audit, internal-only sweep over ./site
+make linkcheck CHECK_EXTERN=1 # same, plus external-URL sweep (docs.rs, GitHub) — slower
 ```
+
+**`make build` is the gate**, run on every commit and in CI. It catches
+broken internal links exhaustively via mkdocs strict mode + the
+`validation:` block in `mkdocs.yml`. **`make linkcheck` is an audit**:
+it inspects the built HTML for anchor validity and optionally chases
+external URLs. Audits are deliberate, slow, and network-dependent —
+they are not prerequisites of `build` or `lint`.
 
 `strict: true` plus the `validation:` block in `mkdocs.yml` means
 any markdown file in `docs/` that isn't wired into `nav` (or

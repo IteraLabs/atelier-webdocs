@@ -15,10 +15,10 @@ subscription is needed (unlike Coinbase).
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_connect::sources::kraken::client`. For full
     signatures, source links, and trait implementations, see the
-    [docs.rs page for this module](https://docs.rs/atelier-connect/0.0.10/atelier_connect/sources/kraken/client/).
+    [docs.rs page for this module](https://docs.rs/atelier-connect/latest/atelier_connect/sources/kraken/client/).
 
 ## Structs
 
 | Item | Summary |
 | --- | --- |
-| [`KrakenWssClient`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/sources/kraken/client/struct.KrakenWssClient.html) | Kraken WebSocket v2 client. |
+| [`KrakenWssClient`](https://docs.rs/atelier-connect/latest/atelier_connect/sources/kraken/client/struct.KrakenWssClient.html) | Kraken WebSocket v2 client. |

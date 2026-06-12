@@ -12,10 +12,10 @@ Trade events are forwarded immediately regardless of book state.
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_connect::workers::pipeline::book_initializer`. For full
     signatures, source links, and trait implementations, see the
-    [docs.rs page for this module](https://docs.rs/atelier-connect/0.0.10/atelier_connect/workers/pipeline/book_initializer/).
+    [docs.rs page for this module](https://docs.rs/atelier-connect/latest/atelier_connect/workers/pipeline/book_initializer/).
 
 ## Structs
 
 | Item | Summary |
 | --- | --- |
-| [`BookInitializer`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/workers/pipeline/book_initializer/struct.BookInitializer.html) | Pipeline stage that coordinates REST snapshot + WSS delta reconciliation for Binance orderbooks. |
+| [`BookInitializer`](https://docs.rs/atelier-connect/latest/atelier_connect/workers/pipeline/book_initializer/struct.BookInitializer.html) | Pipeline stage that coordinates REST snapshot + WSS delta reconciliation for Binance orderbooks. |

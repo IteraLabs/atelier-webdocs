@@ -22,16 +22,16 @@ let provider = build_meter_provider(
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_telemetry::exporters`. For full
     signatures, source links, and trait implementations, see the
-    [docs.rs page for this module](https://docs.rs/atelier-telemetry/0.0.10/atelier_telemetry/exporters/).
+    [docs.rs page for this module](https://docs.rs/atelier-telemetry/latest/atelier_telemetry/exporters/).
 
 ## Enums
 
 | Item | Summary |
 | --- | --- |
-| [`ExporterKind`](https://docs.rs/atelier-telemetry/0.0.10/atelier_telemetry/exporters/enum.ExporterKind.html) | Which metrics exporter to use. |
+| [`ExporterKind`](https://docs.rs/atelier-telemetry/latest/atelier_telemetry/exporters/enum.ExporterKind.html) | Which metrics exporter to use. |
 
 ## Functions
 
 | Item | Summary |
 | --- | --- |
-| [`build_meter_provider`](https://docs.rs/atelier-telemetry/0.0.10/atelier_telemetry/exporters/fn.build_meter_provider.html) | Build a `SdkMeterProvider` with the specified exporter and collection interval. |
+| [`build_meter_provider`](https://docs.rs/atelier-telemetry/latest/atelier_telemetry/exporters/fn.build_meter_provider.html) | Build a `SdkMeterProvider` with the specified exporter and collection interval. |

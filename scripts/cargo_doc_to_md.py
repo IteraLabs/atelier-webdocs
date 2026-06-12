@@ -295,6 +295,7 @@ def render_per_crate(
     items: list[Item],
     out_dir: Path,
     sdk_version: str,
+    docs_rs_version: str,
 ) -> list[str]:
     """Emit module pages for one crate. Return list of module path strings."""
     crate_underscore = crate.replace("-", "_")
@@ -332,7 +333,7 @@ def render_per_crate(
                 module_path=module_path,
                 items=by_module[module_path],
                 module_doc=module_docs.get(module_path, ""),
-                sdk_version=sdk_version,
+                docs_rs_version=docs_rs_version,
             )
         )
         written.append("/".join(rel_segments) if rel_segments else "")
@@ -341,7 +342,9 @@ def render_per_crate(
     crate_index = crate_dir / "index.md"
     if not crate_index.exists():
         crate_index.write_text(
-            _render_crate_index(crate, crate_underscore, written, sdk_version)
+            _render_crate_index(
+                crate, crate_underscore, written, sdk_version, docs_rs_version
+            )
         )
     return sorted(set(written))
 
@@ -353,12 +356,12 @@ def _render_module_page(
     module_path: tuple[str, ...],
     items: list[Item],
     module_doc: str,
-    sdk_version: str,
+    docs_rs_version: str,
 ) -> str:
     """One module = one Markdown page with a table per item-kind."""
     title_path = "::".join(module_path)
     docs_rs_module_url = (
-        f"https://docs.rs/{crate}/{sdk_version}/{crate_underscore}/"
+        f"https://docs.rs/{crate}/{docs_rs_version}/{crate_underscore}/"
         + "/".join(module_path[1:])
         + ("/" if len(module_path) > 1 else "")
     )
@@ -425,16 +428,20 @@ def _render_crate_index(
     crate_underscore: str,
     modules: list[str],
     sdk_version: str,
+    docs_rs_version: str,
 ) -> str:
     """Crate-level landing page: lists every module as a link."""
-    docs_rs = f"https://docs.rs/{crate}/{sdk_version}/{crate_underscore}/"
+    docs_rs = f"https://docs.rs/{crate}/{docs_rs_version}/{crate_underscore}/"
     lines = [
         f"# `{crate}` — API reference",
         "",
-        f"Skeleton API reference for crate [`{crate}`]({docs_rs}) at version "
-        f"`{sdk_version}`. Each module page lists its public items with a one-line",
-        "summary and a link to the corresponding entry on docs.rs for full",
-        "signatures, source, and trait implementations.",
+        f"Skeleton API reference for crate [`{crate}`]({docs_rs}); "
+        f"this page documents source at SDK version `{sdk_version}`. "
+        "Out-links target the most recent published docs on docs.rs "
+        "(see the README's docs-rs-version note for why). Each module "
+        "page lists its public items with a one-line summary and a link "
+        "to the corresponding entry on docs.rs for full signatures, "
+        "source, and trait implementations.",
         "",
         "## Modules",
         "",
@@ -451,13 +458,15 @@ def _render_crate_index(
 
 
 def render_top_index(
-    crates: list[str], out_dir: Path, sdk_version: str
+    crates: list[str], out_dir: Path, sdk_version: str, docs_rs_version: str
 ) -> None:
     """Rewrite docs/sdk/api/index.md with a list of all six (or N) crates."""
     lines = [
         "# API reference",
         "",
         f"Skeleton API reference for the **atelier-sdk v{sdk_version}** workspace.",
+        f"Out-links target docs.rs `/{docs_rs_version}/` so they continue to "
+        "resolve as the SDK iterates ahead of any single pinned version.",
         "Every public item has a row in its module's table with a one-line",
         "summary and a link to docs.rs for the full signature.",
         "",
@@ -515,6 +524,17 @@ def main() -> int:
         help="Override SDK_VERSION (otherwise read from SDK_VERSION at repo root).",
     )
     p.add_argument(
+        "--docs-rs-version",
+        default="latest",
+        help=(
+            "Version segment used in docs.rs out-links. Defaults to 'latest' "
+            "to avoid 404s when the local SDK source is newer than the "
+            "version pinned in SDK_VERSION (a common state during rapid "
+            "iteration). Pass an explicit version (e.g. '0.0.10') if you "
+            "want the link targets to match the documented version exactly."
+        ),
+    )
+    p.add_argument(
         "--skip-rustdoc",
         action="store_true",
         help="Reuse existing target/doc/*.json instead of re-running cargo.",
@@ -523,10 +543,14 @@ def main() -> int:
 
     repo_root = Path(__file__).resolve().parent.parent
     sdk_version = args.sdk_version or _read_sdk_version_file(repo_root)
+    docs_rs_version = args.docs_rs_version
     crates = [c.strip() for c in args.crates.split(",") if c.strip()]
 
     args.out.mkdir(parents=True, exist_ok=True)
-    print(f"sdk_version={sdk_version} crates={crates}", file=sys.stderr)
+    print(
+        f"sdk_version={sdk_version} docs_rs_version={docs_rs_version} crates={crates}",
+        file=sys.stderr,
+    )
 
     for crate in crates:
         crate_underscore = crate.replace("-", "_")
@@ -539,13 +563,15 @@ def main() -> int:
 
         payload = load_rustdoc(json_path)
         items = collect_items(payload)
-        modules = render_per_crate(crate, items, args.out, sdk_version)
+        modules = render_per_crate(
+            crate, items, args.out, sdk_version, docs_rs_version
+        )
         print(
             f"  {crate}: {len(items)} items across {len(modules)} modules",
             file=sys.stderr,
         )
 
-    render_top_index(crates, args.out, sdk_version)
+    render_top_index(crates, args.out, sdk_version, docs_rs_version)
     print(f"wrote API skeleton for {len(crates)} crates under {args.out}/", file=sys.stderr)
     return 0
 

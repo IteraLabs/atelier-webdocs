@@ -45,11 +45,11 @@ name.  The mapping is exchange-specific:
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_connect::workers::data_worker`. For full
     signatures, source links, and trait implementations, see the
-    [docs.rs page for this module](https://docs.rs/atelier-connect/0.0.10/atelier_connect/workers/data_worker/).
+    [docs.rs page for this module](https://docs.rs/atelier-connect/latest/atelier_connect/workers/data_worker/).
 
 ## Structs
 
 | Item | Summary |
 | --- | --- |
-| [`DataWorker`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/workers/data_worker/struct.DataWorker.html) | A single-symbol raw data ingestion worker. |
-| [`DataWorkerReport`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/workers/data_worker/struct.DataWorkerReport.html) | Summary statistics returned when a `DataWorker` finishes. |
+| [`DataWorker`](https://docs.rs/atelier-connect/latest/atelier_connect/workers/data_worker/struct.DataWorker.html) | A single-symbol raw data ingestion worker. |
+| [`DataWorkerReport`](https://docs.rs/atelier-connect/latest/atelier_connect/workers/data_worker/struct.DataWorkerReport.html) | Summary statistics returned when a `DataWorker` finishes. |

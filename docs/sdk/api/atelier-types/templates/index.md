@@ -9,10 +9,10 @@ and feature definitions from TOML files.
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_types::templates`. For full
     signatures, source links, and trait implementations, see the
-    [docs.rs page for this module](https://docs.rs/atelier-types/0.0.10/atelier_types/templates/).
+    [docs.rs page for this module](https://docs.rs/atelier-types/latest/atelier_types/templates/).
 
 ## Structs
 
 | Item | Summary |
 | --- | --- |
-| [`Config`](https://docs.rs/atelier-types/0.0.10/atelier_types/templates/struct.Config.html) | Master configuration loading experiments, exchanges, and features. |
+| [`Config`](https://docs.rs/atelier-types/latest/atelier_types/templates/struct.Config.html) | Master configuration loading experiments, exchanges, and features. |

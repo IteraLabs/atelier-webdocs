@@ -514,11 +514,11 @@ repeated RawTrade trades = 1;
 
 | Variable                  | Required | Default                                     | Description                               |
 |---------------------------|----------|---------------------------------------------|-------------------------------------------|
-| `REST_HOST`               | no       | `0.0.0.0`                                   | REST server bind host                     |
-| `REST_PORT`               | no       | `8000`                                      | REST server bind port                     |
-| `GRPC_PORT`               | no       | `50051`                                     | gRPC server bind port                     |
-| `DATABASE_URL`            | **yes**  | —                                           | PostgreSQL connection string              |
-| `DATABASE_MAX_CONNECTIONS`| no       | `10`                                        | Connection pool size                      |
+| `OVERSEER_HOST`           | no       | `0.0.0.0`                                   | REST server bind host                     |
+| `OVERSEER_PORT`           | no       | `8000`                                      | REST server bind port                     |
+| `GATEWAY_PORT`            | no       | `50443`                                     | gRPC server bind port                     |
+| `POSTGRES_URL`            | **yes**  | —                                           | PostgreSQL connection string              |
+| `POSTGRES_MAX_CONNECTIONS`| no       | `10`                                        | Connection pool size                      |
 | `KAFKA_BROKERS`           | **yes**  | —                                           | Kafka broker addresses                    |
 | `KAFKA_GROUP_ID`          | no       | `atelier-backend`                           | Kafka consumer group ID                   |
 | `JWT_SECRET`              | no       | `dev-secret-not-for-production`             | JWT signing/validation secret             |

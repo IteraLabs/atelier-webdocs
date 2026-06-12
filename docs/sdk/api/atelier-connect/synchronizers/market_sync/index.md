@@ -54,16 +54,16 @@ let snapshots: Vec<MarketSnapshot> = sync.drain();
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_connect::synchronizers::market_sync`. For full
     signatures, source links, and trait implementations, see the
-    [docs.rs page for this module](https://docs.rs/atelier-connect/0.0.10/atelier_connect/synchronizers/market_sync/).
+    [docs.rs page for this module](https://docs.rs/atelier-connect/latest/atelier_connect/synchronizers/market_sync/).
 
 ## Structs
 
 | Item | Summary |
 | --- | --- |
-| [`MarketSynchronizer`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/synchronizers/market_sync/struct.MarketSynchronizer.html) | Multi-source time synchronizer that produces `MarketSnapshot` at each grid period, combining all data sources. |
+| [`MarketSynchronizer`](https://docs.rs/atelier-connect/latest/atelier_connect/synchronizers/market_sync/struct.MarketSynchronizer.html) | Multi-source time synchronizer that produces `MarketSnapshot` at each grid period, combining all data sources. |
 
 ## Enums
 
 | Item | Summary |
 | --- | --- |
-| [`ClockMode`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/synchronizers/market_sync/enum.ClockMode.html) | Determines which data feed drives the grid clock. |
+| [`ClockMode`](https://docs.rs/atelier-connect/latest/atelier_connect/synchronizers/market_sync/enum.ClockMode.html) | Determines which data feed drives the grid clock. |

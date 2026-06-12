@@ -31,9 +31,17 @@ SDK_PATH ?= ../atelier-sdk
 # only and gets a hand-written operator-reference page instead.
 SDK_CRATES ?= atelier-types,atelier-connect,atelier-io,atelier-data,atelier-quant,atelier-telemetry
 
-# Read SDK version from the SDK_VERSION file. Honoured by both the
-# script (for docs.rs link-outs) and the build (for the page footer).
+# Read SDK version from the SDK_VERSION file. Surfaces in the page
+# footer as "Documenting atelier-sdk vX.Y.Z" — the version of the
+# *source* the API skeleton was extracted from.
 SDK_VERSION := $(shell cat SDK_VERSION 2>/dev/null || echo unknown)
+
+# docs.rs version segment used in API-page out-links. Default `latest`
+# is forgiving against version skew when the local SDK source is
+# newer than what's published as SDK_VERSION on crates.io (a common
+# state during rapid iteration). Set DOCS_RS_VERSION=$(SDK_VERSION)
+# if you want strict version-pinned links instead.
+DOCS_RS_VERSION ?= latest
 
 # Container image coordinates for `make docker-build`.
 IMAGE ?= ghcr.io/iteralabs/atelier-webdocs
@@ -79,11 +87,12 @@ strict: build
 sdk-api: install ## Regenerate docs/sdk/api/ from a local atelier-sdk checkout.
 	@test -d "$(SDK_PATH)" || \
 	  (echo "error: SDK_PATH=$(SDK_PATH) not a directory; pass SDK_PATH=..." && exit 1)
-	@echo "regenerating API skeleton against atelier-sdk in $(SDK_PATH) (v$(SDK_VERSION))"
+	@echo "regenerating API skeleton against atelier-sdk in $(SDK_PATH) (v$(SDK_VERSION), docs.rs/$(DOCS_RS_VERSION))"
 	$(PY) scripts/cargo_doc_to_md.py \
 	    --sdk-path "$(SDK_PATH)" \
 	    --crates "$(SDK_CRATES)" \
 	    --sdk-version "$(SDK_VERSION)" \
+	    --docs-rs-version "$(DOCS_RS_VERSION)" \
 	    --out docs/sdk/api
 
 # ─── mike versioning ─────────────────────────────────────────────────
@@ -105,13 +114,33 @@ docker-build: ## Build the deploy container image.
 docker-run: docker-build ## Build and run the image at http://localhost:8080/atelier/docs/.
 	docker run --rm -p 8080:80 $(IMAGE):$(TAG)
 
-# ─── linting ─────────────────────────────────────────────────────────
+# ─── linting & link auditing ─────────────────────────────────────────
+#
+# `mkdocs build --strict` already validates internal links exhaustively
+# (broken refs, missing files, unrecognised cross-references), so it's
+# the *gate* — every CI run, every commit. The targets below are
+# deliberate audits: slower, network-dependent, on-demand. They are
+# NOT prerequisites of `make build`.
 
-lint: install linkcheck ## Run all linters.
-	$(VENV_BIN)/pymarkdown --config .pymarkdown.json scan docs/ || true
+lint: install ## Run markdown lint over docs/. Fast, no network.
+	LANG=C LC_ALL=C $(VENV_BIN)/pymarkdown --config .pymarkdown.json scan docs/ || true
 
-linkcheck: build ## HTML link checker against the built ./site tree.
-	$(VENV_BIN)/linkchecker --check-extern site/index.html || true
+# linkcheck is for *auditing* the built HTML — anchor validity, external
+# URL aliveness. Internal validation already happened during `make build`.
+#
+# Two modes:
+#   make linkcheck                # internal-only sweep (fast, deterministic)
+#   make linkcheck CHECK_EXTERN=1 # also chase external URLs (slow, flaky)
+#
+# `linkchecker` in current versions treats `--check-extern` as a boolean
+# flag (no value). To skip the external sweep, just omit the flag.
+LINKCHECK_FLAGS = --no-warnings
+ifeq ($(CHECK_EXTERN),1)
+LINKCHECK_FLAGS += --check-extern
+endif
+
+linkcheck: build ## On-demand link audit against the built ./site tree.
+	LANG=C LC_ALL=C $(VENV_BIN)/linkchecker $(LINKCHECK_FLAGS) site/index.html || true
 
 # ─── clean ───────────────────────────────────────────────────────────
 

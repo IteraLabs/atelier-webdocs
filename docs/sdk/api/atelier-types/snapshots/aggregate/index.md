@@ -10,10 +10,10 @@ engineering, and efficient Parquet storage.
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_types::snapshots::aggregate`. For full
     signatures, source links, and trait implementations, see the
-    [docs.rs page for this module](https://docs.rs/atelier-types/0.0.10/atelier_types/snapshots/aggregate/).
+    [docs.rs page for this module](https://docs.rs/atelier-types/latest/atelier_types/snapshots/aggregate/).
 
 ## Structs
 
 | Item | Summary |
 | --- | --- |
-| [`MarketAggregate`](https://docs.rs/atelier-types/0.0.10/atelier_types/snapshots/aggregate/struct.MarketAggregate.html) | Aggregated statistics for a single `MarketSnapshot` period. |
+| [`MarketAggregate`](https://docs.rs/atelier-types/latest/atelier_types/snapshots/aggregate/struct.MarketAggregate.html) | Aggregated statistics for a single `MarketSnapshot` period. |

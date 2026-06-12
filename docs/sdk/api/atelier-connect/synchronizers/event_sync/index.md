@@ -51,16 +51,16 @@ let snapshots: Vec<MarketSnapshot> = sync.drain();
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_connect::synchronizers::event_sync`. For full
     signatures, source links, and trait implementations, see the
-    [docs.rs page for this module](https://docs.rs/atelier-connect/0.0.10/atelier_connect/synchronizers/event_sync/).
+    [docs.rs page for this module](https://docs.rs/atelier-connect/latest/atelier_connect/synchronizers/event_sync/).
 
 ## Structs
 
 | Item | Summary |
 | --- | --- |
-| [`EventSynchronizer`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/synchronizers/event_sync/struct.EventSynchronizer.html) | Event-driven snapshot synchronizer. |
+| [`EventSynchronizer`](https://docs.rs/atelier-connect/latest/atelier_connect/synchronizers/event_sync/struct.EventSynchronizer.html) | Event-driven snapshot synchronizer. |
 
 ## Enums
 
 | Item | Summary |
 | --- | --- |
-| [`ReferenceEventType`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/synchronizers/event_sync/enum.ReferenceEventType.html) | Which market event type triggers snapshot emission. |
+| [`ReferenceEventType`](https://docs.rs/atelier-connect/latest/atelier_connect/synchronizers/event_sync/enum.ReferenceEventType.html) | Which market event type triggers snapshot emission. |

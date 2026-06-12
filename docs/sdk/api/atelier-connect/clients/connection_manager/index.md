@@ -34,11 +34,11 @@ let action = manager.on_disconnect(&reason);
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_connect::clients::connection_manager`. For full
     signatures, source links, and trait implementations, see the
-    [docs.rs page for this module](https://docs.rs/atelier-connect/0.0.10/atelier_connect/clients/connection_manager/).
+    [docs.rs page for this module](https://docs.rs/atelier-connect/latest/atelier_connect/clients/connection_manager/).
 
 ## Structs
 
 | Item | Summary |
 | --- | --- |
-| [`ConnectionManager`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/clients/connection_manager/struct.ConnectionManager.html) | Stateful connection lifecycle manager. |
-| [`ConnectionManagerConfig`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/clients/connection_manager/struct.ConnectionManagerConfig.html) | Configuration for building a `ConnectionManager`. |
+| [`ConnectionManager`](https://docs.rs/atelier-connect/latest/atelier_connect/clients/connection_manager/struct.ConnectionManager.html) | Stateful connection lifecycle manager. |
+| [`ConnectionManagerConfig`](https://docs.rs/atelier-connect/latest/atelier_connect/clients/connection_manager/struct.ConnectionManagerConfig.html) | Configuration for building a `ConnectionManager`. |

@@ -28,16 +28,16 @@ from the previous snapshot.
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_connect::synchronizers::ob_sync`. For full
     signatures, source links, and trait implementations, see the
-    [docs.rs page for this module](https://docs.rs/atelier-connect/0.0.10/atelier_connect/synchronizers/ob_sync/).
+    [docs.rs page for this module](https://docs.rs/atelier-connect/latest/atelier_connect/synchronizers/ob_sync/).
 
 ## Structs
 
 | Item | Summary |
 | --- | --- |
-| [`ObSynchronizer`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/synchronizers/ob_sync/struct.ObSynchronizer.html) | Produces uniformly-spaced `Orderbook` snapshots from an irregular update stream. |
+| [`ObSynchronizer`](https://docs.rs/atelier-connect/latest/atelier_connect/synchronizers/ob_sync/struct.ObSynchronizer.html) | Produces uniformly-spaced `Orderbook` snapshots from an irregular update stream. |
 
 ## Functions
 
 | Item | Summary |
 | --- | --- |
-| [`capture_levels`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/synchronizers/ob_sync/fn.capture_levels.html) | Extract the current book state from an `OrderbookDelta` as `Vec<Level>` pairs. |
+| [`capture_levels`](https://docs.rs/atelier-connect/latest/atelier_connect/synchronizers/ob_sync/fn.capture_levels.html) | Extract the current book state from an `OrderbookDelta` as `Vec<Level>` pairs. |

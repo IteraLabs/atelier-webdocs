@@ -1,7 +1,7 @@
 # `atelier-data` — API reference
 
 Skeleton API reference for crate
-[`atelier-data`](https://docs.rs/atelier-data/0.0.15/atelier_data/) at
+[`atelier-data`](https://docs.rs/atelier-data/latest/atelier_data/) at
 version `0.0.15`. Note this crate's own version is independent of
 the workspace marker `0.0.10`.
 
@@ -28,7 +28,7 @@ the planned shape and the consolidation roadmap.
 
 | Module                                                                       | Notes                                                                       |
 |------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
-| [`config`](https://docs.rs/atelier-data/0.0.15/atelier_data/config/)          | TOML configuration types (overlaps with atelier-connect's `config`)         |
+| [`config`](https://docs.rs/atelier-data/latest/atelier_data/config/)          | TOML configuration types (overlaps with atelier-connect's `config`)         |
 | (rest of the surface)                                                         | _early-stage; expect significant churn between releases_                    |
 
 ## Roadmap excerpts
@@ -37,4 +37,4 @@ The crate's README lists a handful of items currently being worked
 on; rather than enumerate them here, see the dedicated
 [Roadmap section on the conceptual page](../../data/index.md#roadmap).
 
-Full reference (docs.rs): <https://docs.rs/atelier-data/0.0.15/atelier_data/>
+Full reference (docs.rs): <https://docs.rs/atelier-data/latest/atelier_data/>

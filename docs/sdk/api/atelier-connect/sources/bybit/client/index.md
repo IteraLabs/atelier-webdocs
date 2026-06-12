@@ -13,10 +13,10 @@ This is the single entry point for Bybit WSS I/O. All other code
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_connect::sources::bybit::client`. For full
     signatures, source links, and trait implementations, see the
-    [docs.rs page for this module](https://docs.rs/atelier-connect/0.0.10/atelier_connect/sources/bybit/client/).
+    [docs.rs page for this module](https://docs.rs/atelier-connect/latest/atelier_connect/sources/bybit/client/).
 
 ## Structs
 
 | Item | Summary |
 | --- | --- |
-| [`BybitWssClient`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/sources/bybit/client/struct.BybitWssClient.html) | Bybit WebSocket client. |
+| [`BybitWssClient`](https://docs.rs/atelier-connect/latest/atelier_connect/sources/bybit/client/struct.BybitWssClient.html) | Bybit WebSocket client. |

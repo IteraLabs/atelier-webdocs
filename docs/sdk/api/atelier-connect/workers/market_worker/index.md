@@ -27,11 +27,11 @@ The worker:
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_connect::workers::market_worker`. For full
     signatures, source links, and trait implementations, see the
-    [docs.rs page for this module](https://docs.rs/atelier-connect/0.0.10/atelier_connect/workers/market_worker/).
+    [docs.rs page for this module](https://docs.rs/atelier-connect/latest/atelier_connect/workers/market_worker/).
 
 ## Structs
 
 | Item | Summary |
 | --- | --- |
-| [`MarketWorker`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/workers/market_worker/struct.MarketWorker.html) | A single-symbol synchronised market data worker. |
-| [`MarketWorkerReport`](https://docs.rs/atelier-connect/0.0.10/atelier_connect/workers/market_worker/struct.MarketWorkerReport.html) | Summary statistics returned when a `MarketWorker` finishes. |
+| [`MarketWorker`](https://docs.rs/atelier-connect/latest/atelier_connect/workers/market_worker/struct.MarketWorker.html) | A single-symbol synchronised market data worker. |
+| [`MarketWorkerReport`](https://docs.rs/atelier-connect/latest/atelier_connect/workers/market_worker/struct.MarketWorkerReport.html) | Summary statistics returned when a `MarketWorker` finishes. |

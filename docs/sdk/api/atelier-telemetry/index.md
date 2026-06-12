@@ -35,18 +35,18 @@ drop(guard); // flushes and shuts down providers
 !!! info "Skeleton API reference"
     This page lists the public items in `atelier_telemetry`. For full
     signatures, source links, and trait implementations, see the
-    [docs.rs page for this module](https://docs.rs/atelier-telemetry/0.0.10/atelier_telemetry/).
+    [docs.rs page for this module](https://docs.rs/atelier-telemetry/latest/atelier_telemetry/).
 
 ## Structs
 
 | Item | Summary |
 | --- | --- |
-| [`TelemetryConfig`](https://docs.rs/atelier-telemetry/0.0.10/atelier_telemetry/struct.TelemetryConfig.html) | Top-level telemetry configuration, typically deserialized from TOML. |
-| [`TelemetryGuard`](https://docs.rs/atelier-telemetry/0.0.10/atelier_telemetry/struct.TelemetryGuard.html) | RAII guard that shuts down the OTel `MeterProvider` on drop. |
+| [`TelemetryConfig`](https://docs.rs/atelier-telemetry/latest/atelier_telemetry/struct.TelemetryConfig.html) | Top-level telemetry configuration, typically deserialized from TOML. |
+| [`TelemetryGuard`](https://docs.rs/atelier-telemetry/latest/atelier_telemetry/struct.TelemetryGuard.html) | RAII guard that shuts down the OTel `MeterProvider` on drop. |
 
 ## Functions
 
 | Item | Summary |
 | --- | --- |
-| [`ingestion_meters`](https://docs.rs/atelier-telemetry/0.0.10/atelier_telemetry/fn.ingestion_meters.html) | Create `IngestionMeters` from the global meter provider. |
-| [`init_telemetry`](https://docs.rs/atelier-telemetry/0.0.10/atelier_telemetry/fn.init_telemetry.html) | Initialize the OpenTelemetry telemetry stack. |
+| [`ingestion_meters`](https://docs.rs/atelier-telemetry/latest/atelier_telemetry/fn.ingestion_meters.html) | Create `IngestionMeters` from the global meter provider. |
+| [`init_telemetry`](https://docs.rs/atelier-telemetry/latest/atelier_telemetry/fn.init_telemetry.html) | Initialize the OpenTelemetry telemetry stack. |
