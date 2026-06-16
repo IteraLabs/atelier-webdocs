@@ -1,0 +1,209 @@
+# Cloudflare Notes
+
+Cloudflare-Tunnel side of the public Atelier surface 
+(`www.iteralabs.xyz/atelier/*`). The tunnel daemon (`cloudflared`) runs on the
+Ubuntu server.
+
+# 0 — Services under the tunnel: 
+
+Publicly exposed (Cloudflared): 
+
+- **ssh** (Admin): 
+    - port: 22
+    - Connection from external terminal to ultradian server.
+    - Private admin controlled.
+    - ssh user@ip -p 22
+
+- **webapp** (FrontEnd)
+    - port: 3000
+    - Deployed webapp with its internal routing (/atelier/, /docs/, /api/, /ws/)
+    - iteralabs.xyz, www.iteralabs.xyz, https://iteralabs.xyz
+    - Public frontend controlled.
+
+- **gateway** (Client-Platform Coms):
+    - port: 50051
+    - gateway.iteralabs.xyz
+    - BYO-infra remote agents register over public gRPC.
+    - Public backend controlled. 
+    - gRPC public access
+
+Reserved and not publicly exposed:
+
+- **overseer** (Router and Orchestrator):
+    - port: 8000
+    - Internal REST API 
+    - reachable only via webapp nginx /api/.
+
+- **kafka** (Internal Message Broker):
+    - ports: 9092/29092
+    - container-only
+
+- **postgres** (Admin Database):
+    - port: 5432
+    - container-only
+
+- **overledger** (Payments Ledger):
+    - port: 8090
+    - payments router; bound only to overseer process via Postgres + in-process router.
+    - bound only to overseer process via Postgres + in-process router
+
+Following steps are required to be executed within an active connection with `ssh ultradian`.
+
+# 1 — Tunnel daemon (server-side)
+
+Content inspect for liveness of tunnel connection.
+
+```bash
+systemctl status cloudflared --no-pager | head -20
+```
+
+Detailed and chronological logs 
+
+```bash
+sudo journalctl -u cloudflared -n 100 --no-pager
+```
+
+Show the full contents of the config file for cloudflared tunnel
+
+```bash
+sudo cat /etc/cloudflared/config.yml
+```
+
+Note: What "healthy" looks like in the log?
+
+> - Four `Registered tunnel connection` 
+lines (cloudflared keeps 4 edge connections, typically two
+datacenters × two connections each — for this host, qro01 ×2 + dfw06,
+dfw08).
+
+> - Transient `failed to dial … network is unreachable` /
+`Connection terminated` followed by a re-`Registered` line is noise,
+not a fault — those are NAT/QUIC-path cycles. A real fault is no
+`Registered tunnel connection` line in the last minute.
+
+What to read in `config.yml`?:
+
+> - Each `hostname → service` row is one ingress rule. 
+> - The order matters (first match wins).
+
+Example
+
+```yaml
+- hostname: www.iteralabs.xyz
+  service: http://localhost:3000
+```
+
+If the `service:` port doesn't match what's actually listening on the
+Ubuntu host (Step 3), the tunnel returns the Cloudflare 502 HTML page.
+
+## 2 — Tunnel registration (control-plane side)
+
+Lists all tunnels in the Cloudflare account this cert is bound to.
+
+```bash
+cloudflared tunnel list
+```
+
+Detailed view: active connections + datacenters + uptime per conn.
+
+```bash
+cloudflared tunnel info <tunnel-name-or-uuid>
+```
+
+DNS routes attached to the tunnel.`tunnel info` mirrors what the 
+systemd log shows but in tabular form, useful when the log is too 
+noisy to scan.
+
+```bash
+cloudflared tunnel route dns <tunnel-name-or-uuid>
+```
+
+## 3 — Origin reachability on the Ubuntu host
+
+What's actually bound on the host?
+
+```bash
+ss -tlnp 2>/dev/null | grep -E ":8000|:3000|:50051"
+```
+
+For a fully functional deployment, we should see:
+
+- 3000 (webapp nginx)
+- 8000 (overseer REST). 
+- 50051 (gateway)
+
+Walk the path the tunnel walks, hop by hop.
+
+```bash
+curl -sI http://localhost:3000/atelier/
+curl -sI http://localhost:3000/api/services -H "Authorization: Bearer dev-token"
+curl -sI http://localhost:8000/health
+```
+
+If `ss` shows nothing on 3000, the tunnel will 502. Either start the
+webapp container (`./deploy/deploy-lan.sh` from the `atelier-webapp` repo 
+on the host) or repoint the ingress rule to whatever IS listening.
+
+## 4 — Public DNS + edge
+
+```bash
+# Hostname must resolve to Cloudflare anycast IPs (104.x / 172.x range).
+dig +short www.iteralabs.xyz
+
+# Confirm the request is reaching the Cloudflare edge — `cf-ray`,
+# `server: cloudflare`, and `cf-cache-status` headers prove it.
+curl -sI https://www.iteralabs.xyz/atelier/ | grep -i -E '^(cf-|server|cache|content-type)'
+
+# Edge-trace: which colo terminated this connection, your IP as CF sees it.
+curl -s https://www.iteralabs.xyz/cdn-cgi/trace
+```
+
+## 5 — End-to-end (the failing deploy call)
+
+Reproduce the SpawnModal call directly. Compare status + body to what
+the modal sees. The body shape mirrors spawn_modal.rs line 419.
+
+```bash
+curl -i -X POST https://www.iteralabs.xyz/api/services \
+  -H 'Authorization: Bearer dev-token' \
+  -H 'Content-Type: application/json' \
+  -d '{"kind":"market","manifest_toml":""}'
+```
+
+Same call against the origin directly, bypassing Cloudflare entirely.
+If THIS one succeeds and the Cloudflare-fronted one 502s, the fault is
+upstream of the origin (tunnel ingress or daemon). If both 502, the
+fault is the origin (overseer not running, nginx config broken).
+
+```bash
+ssh ultradian 'curl -i -X POST http://localhost:3000/api/services \
+  -H "Authorization: Bearer dev-token" \
+  -H "Content-Type: application/json" \
+  -d "{\"kind\":\"market\",\"manifest_toml\":\"\"}"'
+```
+
+## 6 — Decoding what a 502 actually means
+
+| Symptom | Origin of the 502 | Where to look |
+|---|---|---|
+| Browser shows `iteralabs.xyz \| 502: Bad gateway` HTML page | Cloudflare edge — tunnel daemon couldn't reach the origin (TCP refused, name unresolved, or 100s edge timeout) | Step 1 logs + Step 3 `ss` |
+| `curl -sI https://…` returns `HTTP/2 502` + `server: cloudflare` but no Cloudflare HTML body | Same as above; just a different rendering | Step 1 + Step 3 |
+| `curl -sI https://…` returns `HTTP/2 502` + `server: nginx` | Nginx (webapp container) is up but its `proxy_pass` upstream is dead | `docker logs atelier` on the host + Step 3 `curl :8000/health` |
+| Modal shows `Backend unreachable — is the server running?` | Browser couldn't establish the TCP connection at all (DNS, CORS, or fetch error before HTTP layer) | Browser DevTools Network tab, Step 4 `dig` |
+
+## 7 — Bonus: tail tunnel + nginx + overseer in three panes
+
+```bash
+# Pane A — tunnel
+sudo journalctl -u cloudflared -f --no-pager
+
+# Pane B — nginx (webapp container)
+docker logs -f atelier
+
+# Pane C — overseer REST
+docker logs -f overseer 2>&1 | grep -E "POST|ERROR|WARN"
+```
+
+Trigger the deploy from the modal and watch which pane shows the
+request first. The request should appear in A → B → C, in order; the
+last pane to print is the one closest to the failure.
