@@ -158,6 +158,10 @@ The single catalog of time-bounded decisions and configurable tunables reference
 - **Reader**: subsystem-probe loop in `degraded` state.
 - **Why**: Fast enough to catch recovery; slow enough to avoid hammering a flapping subsystem.
 
+### `overseer.retry_after_secs` - **5** (5s)
+- **Reader**: Overseer `GET /health/ready` response while `Draining` (§1.2.1) — the `Retry-After` header value.
+- **Why**: Matches `degraded_refresh_ms` — the soonest the state could next change, so a client poll loop backs off exactly one probe cycle. v0.1-beta-2 ships this as a fixed constant in the readiness handler (`RETRY_AFTER_SECS`); env-tunable-ization is deferred.
+
 ### `overseer.event_flush_ms` - **100** (100ms)
 - **Reader**: Event bus batcher.
 - **Why**: Caps event emission latency; ~100ms is imperceptible to observability consumers while amortizing writes.
@@ -230,6 +234,7 @@ Missing keys resolve to the default; an unknown override key logs a warning and 
 | `overseer.reconcile_stage1_budget_ms` | 30000 | Recovery Stage 1 |
 | `overseer.reconcile_stage2_budget_ms` | 120_000 | Recovery Stage 2 |
 | `overseer.degraded_refresh_ms` | 5000 | subsystem probe |
+| `overseer.retry_after_secs` | 5 | /health/ready Draining `Retry-After` |
 | `overseer.event_flush_ms` | 100 | Event batcher |
 
 ---

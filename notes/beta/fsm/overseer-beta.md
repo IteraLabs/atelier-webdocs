@@ -134,6 +134,27 @@ Properties:
 Entry: from `Draining` (graceful) or from `Initializing` (fatal error).
 Exit: none (terminal).
 
+### 1.2.1 HTTP / health-endpoint contract
+
+The per-state "Health check endpoint" / "All API endpoints" phrasing in §1.2
+resolves onto two distinct probes (the liveness/readiness split orchestrators
+and load balancers expect):
+
+- **Liveness** (`GET /health`) — ALWAYS `200` while the process runs, including
+  `Degraded` and `Draining`. A liveness probe that returned `503` on those would
+  restart a healthy or gracefully-draining Overseer. "Pull me out of rotation"
+  is the readiness probe's job, not liveness's.
+- **Readiness** (`GET /health/ready`) — a projection of `(state, SubsystemHealth)`:
+  `Ready` → `200`; `Degraded` → `200` + a degraded body listing the lost
+  subsystems (the §1.1 four-subsystem shape, mirroring `OverseerDegraded.losses`
+  so the dashboard banner names the same impact, INV-O4) — **not `503`**, the
+  system is still serving (S3); `Draining` → `503` + `Retry-After` (S4);
+  `Initializing` / `Stopped` → `503`. The readiness body is the authoritative
+  `SubsystemHealth` bitfield, never an ad-hoc re-probe, so the load-balancer
+  surface and the WS dashboard cannot diverge.
+
+The `Retry-After` value is `overseer.retry_after_secs` (`timeouts-beta.md §T.7`).
+
 ### 1.3 Transitions
 
 ```
