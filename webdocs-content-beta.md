@@ -9,15 +9,21 @@
 > pillar is specified here first, then implemented in a later, separately-reviewed pass.
 >
 > **Pillars** (this doc grows one section at a time):
-> - **Pillar 0 — Identity** ← *specified below*
-> - Pillar 1 — Research surface *(later)*
-> - Pillar 2 — Information architecture *(later)*
-> - Pillar 3 — Content inclusion (benchmarks, datasets, methodology) *(later)*
+> - **Pillar 0 — Identity** — ✅ implemented on `docs/content-beta`
+> - **Pillar 1 — Research surface** — ✅ implemented on `docs/content-beta` (seed article)
+> - **Pillar 2 — Information architecture** — ✅ implemented on `docs/content-beta`
+> - **Pillar 3 — Content inclusion** — ✅ implemented (datasets + methodology; benchmarks deferred)
 > - Pillar 4 — Live / data surfaces *(later)*
 
 ---
 
 # Pillar 0 — Identity
+
+> **Status — ✅ implemented on `docs/content-beta` (2026-06-16).** Build green
+> (`mkdocs build --no-strict`). Verified live: dark default, azure accent (zero indigo),
+> Space Grotesk / DM Sans / JetBrains Mono, IteraLabs header mark + favicon, branded code +
+> admonitions, Mermaid in brand colours, light-mode parity, brand page. Header logo set from
+> `media/iteralabs_logo.png`; favicon + apple-touch regenerated from that same file.
 
 **Goal:** make the docs site a visually identical sibling of `atelier-webapp` and read,
 at a glance, as a deliberate lab — not a stock Material template. Scope is brand, palette,
@@ -203,3 +209,215 @@ under-used — `extra.css` is ~3 cosmetic tweaks and the palette is stock `prima
 
 Critical path is **B2 → B3** (the token bridge + Material mapping); everything visible
 depends on it. Assets (B1) can proceed in parallel.
+
+---
+
+# Pillar 1 — Research surface
+
+> **Status — ✅ implemented on `docs/content-beta` (2026-06-16).** Research section live with
+> one flagship article; build green. This is the single biggest move from "SDK reference" to
+> "research lab": the site now *publishes dated, authored, citable thinking*, not just API
+> surface.
+
+**Goal:** stand up a `/research` hub where the lab publishes methodology — short, dated,
+authored, reproducible notes. The bar is Jane Street's tech blog and Chaos Labs' research:
+a body of work that signals rigor, with every result tied to the code that produced it.
+
+## 1.0 Locked decision — use Material's built-in blog plugin
+
+The research surface is built on **Material for MkDocs' `blog` plugin**, not hand-rolled
+pages. It provides the "scholarly furniture" natively and with **no new pip dependencies**:
+per-post **author**, **publish date**, **reading time**, **categories/topics**, an
+**archive**, and a **topic index** — exactly the dated/authored/citable conventions that make
+a site read as a lab rather than a wiki. Posts live in `docs/research/posts/`, authors in
+`docs/research/.authors.yml`.
+
+## 1.1 The bar
+
+| Move | Exemplified by | Status |
+|---|---|---|
+| Publish *thinking* (methodology), not just API surface | Jane Street, Chaos Labs | ✅ seed article |
+| Every post **dated + authored** | all research labs | ✅ blog plugin |
+| **Reading time + topics/categories** | Helius, Jane Street | ✅ blog plugin |
+| **Reproducibility** — result links to exact code/commit/version | Jump, Chaos Labs | ✅ convention + seed |
+| **Citable** — stable URL + "cite this" block | academic labs | ✅ pinned slug + BibTeX |
+| Research is a **first-class nav peer**, not buried | Citadel, Jane Street | ✅ top-level `Research` |
+
+## 1.2 What we already HAD (and surfaced)
+
+The substance was already in-repo, unpublished: the `atelier-quant` Hawkes/Poisson machinery,
+the Hawkes tutorial (`guides/03-hawkes-on-arrivals.md`), the architecture page's offline
+boundary / Parquet-as-contract design, and the deep `notes/beta` corpus (Taxonomy + FSM
+Atlas + the 50-agent adversarial audit). Pillar 1 turns that latent material into published
+research.
+
+## 1.3 What was BUILT
+
+| Deliverable | Path |
+|---|---|
+| **R1** — blog plugin + `Research` nav entry | `mkdocs.yml` |
+| **R2** — research landing (frames the surface, reproducibility ethos) | `docs/research/index.md` |
+| **R3** — author identity | `docs/research/.authors.yml` (`iteralabs` → "IteraLabs Research") |
+| **R4** — flagship article: *"When are crypto order arrivals self-exciting?"* | `docs/research/posts/2026-06-16-self-exciting-arrivals.md` |
+
+The flagship piece is a **methodology** note, not a tutorial: it frames the Hawkes claim as a
+falsifiable hypothesis (α > 0) and lays out the five-diagnostic consistency check
+(CV → AIC/BIC → LR test → time-rescaling residuals → out-of-sample MAE) used to validate or
+*reject* it — the same adversarial-verification discipline applied to the platform's own
+audits. Slug pinned to `self-exciting-arrivals`; ends with a reproduce-it command and a
+BibTeX cite block whose URL matches the slug.
+
+## 1.4 Verification (done)
+
+- `mkdocs build` green; blog plugin generated landing, post, `/archive/2026/`, and
+  `/category/{methodology,microstructure}/`.
+- Live: `Research` is a top-level nav peer; landing shows the post card with
+  **author · date · topics · "5 min read" · excerpt · continue-reading**.
+- Post renders with the **author card + metadata sidebar**, brand-styled tables/code, the
+  five-diagnostic table, and the BibTeX cite block. Git "last updated" stamp present.
+
+## 1.5 Next within this pillar (not yet done)
+
+- **More seed articles** from existing material — e.g. *"Deterministic replay of market
+  microstructure"* (the Parquet-as-contract design) and a public distillation of the
+  *engine design language* (Taxonomy + FSM Atlas from `notes/beta`).
+- **RSS feed** — `mkdocs-rss-plugin` (one extra dep) for subscribability.
+- **Author avatar** currently points at the absolute production URL (resolves on the deployed
+  site; falls back locally). Revisit if a site-relative asset path is preferred.
+- The empty **Tutorials overview stub** (`guides/index.md`) is a credibility nit better
+  handled under Pillar 2 (IA).
+
+---
+
+# Pillar 2 — Information architecture
+
+> **Status — ✅ implemented on `docs/content-beta` (2026-06-16).** Build green, no link
+> warnings. The flat product-docs tree is now a tabbed "Lab vs Build" structure with a
+> thesis-led home.
+
+**Goal:** reshape the navigation skeleton and the home page so the site reads as a research
+hub, not a flat reference manual — and close the credibility holes (empty stub, internal
+runbook in public nav, utilitarian home).
+
+## 2.0 Locked decisions *(confirmed with user)*
+
+1. **Nav paradigm** — **top tabs** (Material `navigation.tabs`), grouped *Lab vs Build*:
+   **Overview · Research · SDK · Platform · About**. Sidebar shows the section tree per tab.
+2. **Home page** — **thesis-led reframe**: a one-line positioning statement + the reading
+   paths as branded grid cards, with the reference tables kept lower.
+
+## 2.1 What was BUILT
+
+| # | Change | Where |
+|---|--------|-------|
+| **I1** | Enable `navigation.tabs`; restructure nav into 5 tabs (Overview / Research / SDK / Platform / About). Each tab's first child is its index (`navigation.indexes`). | `mkdocs.yml` |
+| **I2** | Thesis-led home: positioning line + 4 grid cards (Getting started · Architecture · Tutorials · Research); reference tables retained below. | `docs/index.md` |
+| **I3** | Fill the empty **Tutorials** overview stub with a real 3-card overview + a cross-link to the research methodology article. | `docs/guides/index.md` |
+| **I4** | Rename **Backend → Platform API** (nav label + page H1). | `mkdocs.yml`, `docs/backend/index.md` |
+| **I5** | Demote the internal **cutover-runbook** out of public nav (file kept, reachable by URL/search). | `mkdocs.yml` |
+
+### Nav: before → after
+
+```
+BEFORE (flat):  Home · Getting started · Architecture · Research · SDK · Tutorials ·
+                API reference · Backend · Operations(+cutover) · About
+
+AFTER (tabs):   Overview ─ Home · Getting started · Architecture
+                Research ─ (blog: posts · archive · topics)
+                SDK ────── overview · 6 crates · Tutorials · API reference
+                Platform ─ Platform API · Operations(agent)
+                About ──── overview · Brand & identity
+```
+
+## 2.2 Decisions made while implementing
+
+- **No "Concepts" sub-group** under SDK. Wrapping the 6 crate pages in a "Concepts" section
+  caused `navigation.indexes` to promote the first crate (`atelier-types`) into the section
+  landing, hiding its own entry. The crates are now listed directly under SDK; the
+  `API reference` sub-section still separates conceptual pages from generated ones.
+- **Grid cards without the icon extension.** Used Material's `.grid.cards` with Unicode
+  arrows rather than adding `pymdownx.emoji` — keeps the markdown-extension surface
+  unchanged. Adding icons later is trivial.
+- **Blog-post links use the source path.** A regular page linking to a blog post must target
+  the post's *source* file (`research/posts/<dated>.md`); MkDocs rewrites it to the permalink
+  (`/research/<slug>/`). Linking the URL path fails strict link validation.
+
+## 2.3 Verification (done)
+
+- `mkdocs build` green; **zero link/unrecognized warnings** (only the expected untracked-file
+  git-log notices remain, which clear on commit).
+- Live: tabs render (Overview · Research · SDK · Platform · About); home shows the thesis
+  line + 2×2 grid cards; SDK sidebar lists all 6 crates (incl. `atelier-types`) + Tutorials +
+  API reference; Platform tab shows "Platform API" + Operations (no cutover-runbook);
+  Tutorials overview shows the 3-card overview.
+
+## 2.4 Next within this pillar (optional)
+
+- **Home reading-paths icons** — add `pymdownx.emoji` for `:material-*:` card icons.
+- **About prose** still references "Backend" in one list item (`docs/about.md`) — cosmetic.
+- A short **404 page** and **section landing copy** for the SDK/Platform tab indexes could be
+  richer (currently the SDK overview is a light stub).
+
+---
+
+# Pillar 3 — Content inclusion
+
+> **Status — ✅ implemented on `docs/content-beta` (2026-06-16).** The "evidence & data" tier:
+> a dataset catalog and a validation-methodology note, both grounded in **real, verified
+> in-repo evidence**. Benchmarks deferred (see below). Build green, all cross-links resolve.
+
+**Goal:** move from "we describe an SDK" to "we publish evidence" — the Chaos-Labs / Jump
+signal. The hard constraint here is **integrity**: a research lab's credibility rests on
+real, reproducible numbers, so nothing on these pages is fabricated.
+
+## 3.0 What real evidence exists (audited before writing)
+
+| Candidate | Reality in-repo | Decision |
+|---|---|---|
+| **Datasets** | `datasets/collected/` — **407 Parquet files, ~3.8 MB**, 3 exchanges (Binance/Bybit/Coinbase), 5 symbols, trades + L2 orderbook snapshots | ✅ build a catalog |
+| **Methodology** | `v0.1-integration.md` — a live-deployment + 50-agent static audit with adversarial verification of every load-bearing finding | ✅ publish the *process* |
+| **Benchmarks** | Orderbook-generation **plots** exist, but **no `[[bench]]` targets / criterion results** → no sourced numbers | ⛔ **deferred** — publishing numbers would be fabrication |
+
+## 3.1 What was BUILT
+
+| Deliverable | Path | Home |
+|---|---|---|
+| **C1 — Dataset catalog** | `docs/datasets/index.md` | Platform tab + home Quick links |
+| **C2 — Methodology note** *"How we validate the Atelier platform"* | `docs/research/posts/2026-06-16-how-we-validate.md` (slug `how-we-validate`) | Research tab (post #2) |
+
+- **C1** documents the real corpus honestly (incl. its skew toward Binance L2 books), the
+  `{exchange}_{symbol}_{datatype}_{mode}_{ts}.parquet` convention with real example
+  filenames, the `Trade` / `Orderbook` / `MarketSnapshot` schema (fields lifted from
+  `atelier-types`), and the SDK readers (`read_trades_parquet`, `load_parquet_to_ob`). Framed
+  as **"format, not a download"** — it documents schema + how to reproduce, not a hosted file.
+- **C2** publishes the validation **discipline** — spec-as-source-of-truth (FSM Atlas +
+  Taxonomy), two independent evidence streams (live deployment + static multi-agent audit),
+  and **adversarial verification** as the gate — explicitly tied back to the five-diagnostic
+  discipline of the Hawkes post. It deliberately publishes the *method*, **not** the internal
+  gap findings or compliance scores from the source audit.
+
+## 3.2 Integrity decisions
+
+- **No fabricated benchmarks.** With no criterion results or `[[bench]]` targets, no
+  throughput/latency numbers are published. Benchmarks are a real next step *once the SDK
+  exposes a bench harness* — logged here rather than faked.
+- **Methodology, not findings.** The source `v0.1-integration.md` contains internal
+  compliance gaps and scores; the public note describes only the *process*, which reveals no
+  internal posture and is credibility-positive.
+- **Honest dataset coverage.** The catalog states the corpus is a seed sample skewed to
+  Binance L2, not a balanced multi-venue panel.
+
+## 3.3 Verification (done)
+
+- `mkdocs build` green; **zero link warnings**. Research index lists **2 posts**; Topics index
+  spans Methodology + Microstructure; dataset catalog renders under Platform with the real
+  407-file coverage table; all dataset↔research↔tutorial cross-links resolve.
+
+## 3.4 Next within this pillar
+
+- **Benchmarks page** once a criterion/bench harness lands in `atelier-sdk` — throughput,
+  latency distributions, model-fit quality, *with reproduction commands and commit hashes*.
+- **More dataset depth** — publish actual downloadable samples (or a manifest) if/when a
+  hosting location exists; broaden beyond the Binance-heavy seed.
+- A third research note (e.g. *"Deterministic replay of market microstructure"*) to round out
+  the methodology set.

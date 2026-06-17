@@ -1,0 +1,148 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   tokens.css — Atelier brand design tokens (Pillar 0 — Identity)
+
+   Ported verbatim (values) from atelier-webapp/style/tailwind.css so the
+   docs site and the webapp share ONE identity. Blue-grey surfaces +
+   azure accent, catppuccin-family.
+
+   IMPORTANT — re-scoping vs the webapp:
+     The webapp toggles themes with a CSS *class* (.theme-light on the app
+     root). MkDocs Material toggles with the *attribute*
+     [data-md-color-scheme="slate"|"default"] on <body>. So the dark values
+     live under  [data-md-color-scheme="slate"]   (our default theme)
+     and the light values under [data-md-color-scheme="default"].
+
+   Theme-invariant tokens (radii, motion) live on :root.
+   This file defines tokens only; theme.css maps them onto Material's
+   --md-* variables.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Shape ─────────────────────────────────────────────────────── */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-full: 9999px;
+
+  /* ── Motion ────────────────────────────────────────────────────── */
+  --ease-out:       cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast:  120ms;
+  --duration-base:  200ms;
+  --duration-slow:  400ms;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DARK  (default theme)  →  [data-md-color-scheme="slate"]
+   ═══════════════════════════════════════════════════════════════════════ */
+[data-md-color-scheme="slate"] {
+  /* Surfaces */
+  --c-base:          #151920;   /* surface-0: canvas  */
+  --c-base-card:     #1a1e24;   /* surface-1: panels  */
+  --c-base-elevated: #282d36;   /* surface-2: wells   */
+
+  /* Borders */
+  --c-border:        #282d3640;
+  --c-border-light:  #424a5840;
+  --c-border-strong: #424a5870;
+
+  /* Accent (azure) */
+  --c-accent:        #3DA9E8;
+  --c-accent-dim:    rgba(61,169,232,0.15);
+  --c-accent-text:   #c2c9d6;
+  --c-live:          #3DA9E8;
+  --c-live-dim:      rgba(61,169,232,0.15);
+
+  /* Text */
+  --c-text:          #8e95a4;   /* secondary  */
+  --c-rosewater:     #b4bdd0;   /* primary    */
+  --c-highlight1:    #586074;   /* tertiary   */
+
+  /* Signals */
+  --c-blue:          #4a90d4;
+  --c-green:         #34b872;
+  --c-red:           #e05470;
+  --c-yellow:        #daa030;
+  --c-mauve:         #8868b8;
+
+  /* Surface ramp */
+  --c-surface1:      #282d36;
+  --c-surface2:      #353b47;
+  --c-surface3:      #424a58;
+
+  /* Signal badge fills */
+  --c-badge-up-bg:   rgba(52,184,114,0.08);
+  --c-badge-down-bg: rgba(224,84,112,0.08);
+  --c-badge-warn-bg: rgba(218,160,48,0.08);
+  --c-badge-info-bg: rgba(74,144,212,0.08);
+
+  /* Plot palette */
+  --c-plot-grid:      #424a5825;
+  --c-plot-axis:      #586074;
+  --c-plot-label:     #8e95a4;
+  --c-plot-crosshair: #b4bdd025;
+  --c-plot-1: #3DA9E8;
+  --c-plot-2: #34b872;
+  --c-plot-3: #daa030;
+  --c-plot-4: #e05470;
+  --c-plot-5: #8868b8;
+  --c-plot-6: #4a90d4;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LIGHT  (toggle)  →  [data-md-color-scheme="default"]
+   Surface order is flipped: canvas lightest, cards a step darker.
+   ═══════════════════════════════════════════════════════════════════════ */
+[data-md-color-scheme="default"] {
+  /* Surfaces */
+  --c-base:          #fafbfd;
+  --c-base-card:     #f1f2f6;
+  --c-base-elevated: #e8eaef;
+
+  /* Borders */
+  --c-border:        #d8dae3;
+  --c-border-light:  #c5c8d4;
+  --c-border-strong: #b4b8c4;
+
+  /* Accent (azure — same hue both themes) */
+  --c-accent:        #3DA9E8;
+  --c-accent-dim:    rgba(61,169,232,0.10);
+  --c-accent-text:   #4a5568;
+  --c-live:          #3DA9E8;
+  --c-live-dim:      rgba(61,169,232,0.10);
+
+  /* Text */
+  --c-text:          #4a5264;
+  --c-rosewater:     #1a1e24;
+  --c-highlight1:    #8890a0;
+
+  /* Signals */
+  --c-blue:          #3878c0;
+  --c-green:         #28a060;
+  --c-red:           #d04058;
+  --c-yellow:        #c89028;
+  --c-mauve:         #8868b8;
+
+  /* Surface ramp */
+  --c-surface1:      #e8eaef;
+  --c-surface2:      #dfe1e8;
+  --c-surface3:      #d4d7e0;
+
+  /* Signal badge fills */
+  --c-badge-up-bg:   rgba(40,160,96,0.07);
+  --c-badge-down-bg: rgba(208,64,88,0.07);
+  --c-badge-warn-bg: rgba(200,144,40,0.07);
+  --c-badge-info-bg: rgba(56,120,192,0.07);
+
+  /* Plot palette */
+  --c-plot-grid:      #d4d7e060;
+  --c-plot-axis:      #8890a0;
+  --c-plot-label:     #4a5264;
+  --c-plot-crosshair: #1a1e2418;
+  --c-plot-1: #3DA9E8;
+  --c-plot-2: #28a060;
+  --c-plot-3: #c89028;
+  --c-plot-4: #d04058;
+  --c-plot-5: #8868b8;
+  --c-plot-6: #3878c0;
+}

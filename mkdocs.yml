@@ -69,35 +69,44 @@ theme:
     - navigation.instant
     - navigation.tracking
     - navigation.top
-    - navigation.sections
-    - navigation.indexes
+    - navigation.tabs          # top-level groups become horizontal tabs (Lab vs Build)
+    - navigation.sections      # second-level groups render as sidebar sections
+    - navigation.indexes       # a section's landing page is its own index
     - search.suggest
     - search.highlight
     - content.code.copy
     - content.code.annotate
     - toc.follow
+  # Dark-first: slate is the hard default (no `media`, so it does not
+  # defer to the OS preference); the toggle switches to light and persists
+  # the choice. Brand colours are driven entirely from CSS custom
+  # properties (docs/stylesheets/tokens.css + theme.css), so no named
+  # `primary`/`accent` here — that keeps Material's preset palette CSS from
+  # fighting the --md-* overrides.
   palette:
-    - media: "(prefers-color-scheme: light)"
-      scheme: default
-      primary: black
-      accent: indigo
-      toggle:
-        icon: material/weather-night
-        name: Switch to dark mode
-    - media: "(prefers-color-scheme: dark)"
-      scheme: slate
-      primary: black
-      accent: indigo
+    - scheme: slate
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode
+    - scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
   font:
-    text: Inter
+    text: DM Sans
     code: JetBrains Mono
+  # Header mark = IteraLabs (the lab is the identity); the site title
+  # "Atelier SDK" names the documented product alongside it.
+  logo: assets/iteralabs-mark.png
+  favicon: assets/favicon.png
   icon:
     repo: fontawesome/brands/github
 
 extra_css:
+  # Order matters: tokens define the brand --c-* vars, theme maps them onto
+  # Material's --md-* vars and styles code/admonitions, extra is misc tweaks.
+  - stylesheets/tokens.css
+  - stylesheets/theme.css
   - stylesheets/extra.css
 
 # ─────────────────────────────────────────────────────────────────────
@@ -144,6 +153,23 @@ markdown_extensions:
 
 plugins:
   - search
+  # Research surface (Pillar 1). Material's built-in blog plugin gives
+  # authored, dated, read-time-stamped, categorized posts plus an archive
+  # and topic index — the "scholarly furniture" a research lab needs — with
+  # no extra pip dependencies. Posts live in docs/research/posts/, authors
+  # in docs/research/.authors.yml.
+  - blog:
+      blog_dir: research
+      blog_toc: true
+      post_url_format: "{slug}"
+      post_readtime: true
+      post_date_format: long
+      archive: true
+      archive_name: Archive
+      categories: true
+      categories_name: Topics
+      authors: true
+      pagination_per_page: 10
   - git-revision-date-localized:
       enabled: !ENV [GIT_REVISION_DATE_ENABLED, true]
       type: date
@@ -156,41 +182,52 @@ plugins:
 #  Curated explicit nav. New markdown files must be added here or
 #  validation.omitted_files will fail strict mode.
 # ─────────────────────────────────────────────────────────────────────
+#  Top-level entries render as horizontal TABS (navigation.tabs), grouped
+#  "Lab vs Build": Overview / Research are the lab front door; SDK / Platform
+#  are the build surface; About closes. Each tab's first child is its index
+#  page (navigation.indexes), so clicking a tab lands somewhere sensible.
+#
+#  Demoted from public nav (file kept, reachable by URL/search):
+#    - operations/cutover-runbook.md — internal docs-site publish runbook.
 nav:
-  - Home: index.md
-  - Getting started: sdk/getting-started.md
-  - Architecture: sdk/architecture.md
+  - Overview:
+      - index.md
+      - Getting started: sdk/getting-started.md
+      - Architecture: sdk/architecture.md
+
+  # Research surface — the blog plugin nests posts / archive / topics here.
+  - Research:
+      - research/index.md
 
   - SDK:
-      - Overview: sdk/index.md
+      - sdk/index.md
       - atelier-types: sdk/types/index.md
       - atelier-connect: sdk/connect/index.md
       - atelier-io: sdk/io/index.md
       - atelier-data: sdk/data/index.md
       - atelier-quant: sdk/quant/index.md
       - atelier-telemetry: sdk/telemetry/index.md
+      - Tutorials:
+          - Overview: guides/index.md
+          - Bybit → Parquet: guides/01-bybit-to-parquet.md
+          - Multi-exchange sync: guides/02-multi-exchange-sync.md
+          - Hawkes on arrivals: guides/03-hawkes-on-arrivals.md
+      - API reference:
+          - Overview: sdk/api/index.md
+          - atelier-types: sdk/api/atelier-types/index.md
+          - atelier-connect: sdk/api/atelier-connect/index.md
+          - atelier-io: sdk/api/atelier-io/index.md
+          - atelier-data: sdk/api/atelier-data/index.md
+          - atelier-quant: sdk/api/atelier-quant/index.md
+          - atelier-telemetry: sdk/api/atelier-telemetry/index.md
 
-  - Tutorials:
-      - Overview: guides/index.md
-      - Bybit → Parquet: guides/01-bybit-to-parquet.md
-      - Multi-exchange sync: guides/02-multi-exchange-sync.md
-      - Hawkes on arrivals: guides/03-hawkes-on-arrivals.md
+  - Platform:
+      - Platform API: backend/index.md
+      - Dataset catalog: datasets/index.md
+      - Operations:
+          - Overview: operations/index.md
+          - atelier-agent: operations/agent.md
 
-  - API reference:
-      - Overview: sdk/api/index.md
-      - atelier-types: sdk/api/atelier-types/index.md
-      - atelier-connect: sdk/api/atelier-connect/index.md
-      - atelier-io: sdk/api/atelier-io/index.md
-      - atelier-data: sdk/api/atelier-data/index.md
-      - atelier-quant: sdk/api/atelier-quant/index.md
-      - atelier-telemetry: sdk/api/atelier-telemetry/index.md
-
-  - Backend:
-      - Overview: backend/index.md
-
-  - Operations:
-      - Overview: operations/index.md
-      - atelier-agent: operations/agent.md
-      - Cutover runbook: operations/cutover-runbook.md
-
-  - About: about.md
+  - About:
+      - about.md
+      - Brand & identity: about/brand.md
