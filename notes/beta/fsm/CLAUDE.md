@@ -1,0 +1,86 @@
+# CLAUDE.md - FSM Atlas v0.1-beta-2
+
+Seed file for any session working in the FSM Atlas (`notes/beta/fsm/`). The atlas owns the dynamics of the Atelier Engine at this version: states, transitions, guards, effects, invariants, interaction rules, the wire format, the persistence DDL, the error catalog, and the timeout catalog. For static term definitions, descend into `../txy/`.
+
+## Files in this tree
+
+| File               | Section ownership                                                                                                                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fsm-beta.md`      | Reading guide, notation, invariant testability convention, §2.4 FSM scope status, §3 Cross-FSM Sequences index                                                                        |
+| `overseer-beta.md`      | §1 Overseer FSM - dependencies, states, transitions, Operation Availability Matrix, invariants, interaction rules, reconciliation protocol                                            |
+| `agent-beta.md`         | §2.1 Agent FSM (incl. §2.1.5 RemoteAgent restart lineage)                                                                                                                             |
+| `task-beta.md`          | §2.2 Task FSM                                                                                                                                                                         |
+| `binding-beta.md`       | §2.3 Binding FSM                                                                                                                                                                      |
+| `service-beta.md`       | §2.5 Service FSM                                                                                                                                                                      |
+| `session-beta.md`       | §2.7 Session FSM                                                                                                                                                                      |
+| `compute-slot-beta.md`  | §2.8 ComputeSlot FSM                                                                                                                                                                  |
+| `gateway-beta.md`       | §2.9 Gateway FSM (minimal)                                                                                                                                                            |
+| `channel-beta.md`       | §2.10 Channel provisioning contract (minimal)                                                                                                                                         |
+| `sink-beta.md`          | §2.11 Sink provisioning contract (minimal)                                                                                                                                            |
+| `schema-beta.md`        | Postgres persistence schema; ten tables holding state-bearing rows for every specified FSM (incl. lineage-only `artifacts` promoted in v0.1-beta-2)                                   |
+| `proto-catalog-beta.md` | Wire-format SSoT: Envelope, control, telemetry, data (typed `ArtifactFrame` + `ManifestArtifactFrame`), events, services; `TaskRejectionReason` enum                                  |
+| `errors-beta.md`        | Semantic catalog for the `ErrorKind` enum declared in `proto-catalog-beta.md §common.proto`; scope preface distinguishes it from `TaskRejectionReason`                                     |
+| `timeouts-beta.md`      | Catalog of time-bounded decision points and tunables                                                                                                                                  |
+| `sequences-beta.md`     | Cross-FSM Sequences. **SEQ-1 Deploy** and **SEQ-2 Delete** are fully specified (closing use-case steps 1-6). SEQ-3..5 are enumerated in `fsm-beta.md §3` and deferred. |
+
+One FSM per file. Section numbers are stable across files: `§2.1` resolves to the same content regardless of which file owns it.
+
+## Specified vs deferred (`fsm-beta.md §2.4`)
+
+Specified: **Overseer, Agent, Task, Binding, Service, Session, ComputeSlot** (full); **Gateway** (minimal, enough to back `INV-GW1` and `§2.1.5`); **Channel, Sink** (provisioning contract only).
+
+Deferred: **§2.6 Experiment FSM**; **Channel full lifecycle** (`Draining`, `Backpressured`, `Error`, `Closed`, `Failed`); **Sink full lifecycle** (`Streaming`, `Writing`, `Backpressured`, `Error`, `Closed`).
+
+## Notation
+
+State diagrams are ASCII. Transitions are `trigger [guard] / effect`. Brackets omitted if no guard. Slash omitted if no effect beyond the state change.
+
+Each FSM follows: **States -> Transitions -> Invariants -> Interaction Rules**. Read in that order; do not skip Invariants - they are the spec's test suite.
+
+## Invariant ID prefix legend
+
+| Prefix | FSM | Prefix | FSM |
+|---|---|---|---|
+| `A` | Agent | `SV` | Service |
+| `T` | Task | `SN` | Session |
+| `B` | Binding | `CS` | ComputeSlot |
+| `O` | Overseer | `GW` | Gateway |
+| `CH` | Channel | `SK` | Sink |
+
+Cross-tier invariants are filed under the FSM that performs the check, not the one whose state is asserted.
+
+## Invariant testability contract (load-bearing)
+
+Every `INV-*` MUST name a boundary where the assertion can fire in test:
+
+- **Anchoring** - one of: a transition's Guard (pre-fire), a transition's post-condition (after Effects land), or a state-entry predicate (every entry).
+- **Test form** - drive to the boundary and assert. Property-testable invariants ("monotone within Channel") get a randomized driver; point-testable invariants ("`channel_id` unique") get a specific trigger.
+- **Listing** - body ends with `*Testability:* …` naming the boundary. May be omitted only when the boundary is the only transition that writes the field - never silently.
+- **Governance** - an invariant without a reachable boundary is a spec bug. Reject it in review.
+
+If you add or change an invariant, you owe an updated `*Testability:*` line.
+
+## Precedence vs Taxonomy
+
+Atlas wins for any dynamic question. Taxonomy (`../txy/txy-beta.md`) wins for naming and ontology. Conflicts must be resolved within the same version cut on both sides.
+
+## House conventions for edits in this tree
+
+- **One FSM per file.** A new FSM lands in its own file named after the FSM subject (e.g., `experiment.md` for §2.6 when specified). Preserve the stable-section-number invariant so cross-references resolve by `§X.Y` independent of filename.
+- **Wire encoding belongs in `proto-catalog-beta.md`.** FSM files quote message names; they do not redefine fields.
+- **Errors live in `errors-beta.md`.** FSM files reference `ErrorKind::*`; semantic prose stays in the catalog.
+- **Tunables live in `timeouts-beta.md`.** Each entry names the reader (FSM transition or invariant), the default, the rationale.
+- **Persistence rows live in `schema-beta.md`.** When an FSM gains or loses a state-bearing field, the DDL change is part of the same edit.
+- **Section numbers are write-once.** If `§2.4` is taken, the next addition is `§2.4.1`, not a renumber. Renumbering breaks every cross-reference in the atlas and the taxonomy.
+- **Sequences are choreography, not invention.** `sequences-beta.md` traces transitions defined elsewhere - it must not be the only place a transition appears.
+
+## Common edit patterns
+
+| Change type | Land in | Sweep |
+|---|---|---|
+| New transition or guard on an existing FSM | the FSM's section | `sequences-beta.md` if the transition appears in any sequence |
+| New invariant | the FSM's section, with `*Testability:*` | none unless prefix legend changes |
+| New wire message | `proto-catalog-beta.md` (definition); cite by name elsewhere | every FSM that emits or receives it |
+| New error kind | `proto-catalog-beta.md §common.proto` + `errors-beta.md` | every FSM whose effect is "raise `ErrorKind::*`" |
+| New tunable | `timeouts-beta.md` with reader / default / rationale | the FSM whose transition reads it |
+| New persistence field | `schema-beta.md` + the FSM's State definition | reconciliation protocol in `overseer-beta.md §1` if recovery touches it |

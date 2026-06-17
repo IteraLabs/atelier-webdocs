@@ -1,0 +1,363 @@
+# M4 — Credit Packs via MoonPay/Helio (atelier-v0.1-beta-2)
+
+Implementation plan for the credit-acquisition path. Ships **data-credit and compute-credit one-off packs over the existing MoonPay/Helio provider lane**, persists an `expired` terminal state on `billing_checkouts` with a background sweeper, and lands a Leptos credits modal + sidebar chip that learn about new balances by re-fetching entitlements on window focus. Spending integration is M5.
+
+**Scope axis**: Milestone-series (M-axis), not Engine-iteration. Not logged in the Atlas session log.
+
+**Author profile**: solopreneur PhD-final-year senior Rust engineer; spec is for self-execution.
+
+> **Revision history.**
+> - *2026-06-01a* — first draft (assumed trait seam; later found inaccurate).
+> - *2026-06-01b* — corrected against the real `atelier-overledger` seam for a **direct-Stripe** lane.
+> - *2026-06-01c (this version)* — **dropped the direct-Stripe lane entirely.** Decision (grilling session): MoonPay/Helio already covers *both* rails — fiat cards (Stripe-as-middleman inside Helio's iframe) *and* native crypto — so a second, direct-Stripe integration earns nothing in beta-2 beyond a middleman fee saved, at the cost of a whole new trust boundary (own Stripe key, HMAC verification, second webhook route, second SKU representation). Keeping one provider is the right beta call. `crates/stripe` stays the skeleton it is today. This rewrite re-scopes M4 around the MoonPay lane that already works; net new logic is essentially **one sweeper + the credits UI**.
+
+---
+
+## §1 Context & scope — verified against tree (2026-06-01)
+
+The credit ledger, provider abstraction, and a working MoonPay lane already exist at the M3 baseline. The MoonPay lane **already sells credit packs** — M4 finishes the loop. Verified facts:
+
+**Sibling workspace `atelier-overledger/`** (standalone Cargo workspace, axum 0.8.9, edition 2024, `unsafe_code = "forbid"`; consumed by `atelier-backend` via path-deps):
+
+- `ledger-types/sku.rs` — closed `Sku` enum with const-fn projections. Relevant: `Sku::DataCredits` and `Sku::ComputeCredits` already exist as `Cadence::OneOff` credit packs, each `price_usd() == 100`. `is_v1()` currently returns true only for `Pro | DataCredits` — **`ComputeCredits` is gated off** behind a "Coming soon" CTA. A unit test `v1_subset_is_pro_and_data_credits` pins `is_v1` to `[Pro, DataCredits]`.
+- `ledger-types/ledger.rs` — `CreditKind {Data, Compute}`, `CreditBalances {data, compute}`.
+- `ledger-types/checkout.rs` — `CheckoutStatus {Pending, Succeeded, Expired}`. **`Expired` is currently computed at read-time, never persisted** (per its doc-comment).
+- `ledger-types/event.rs` — `EntitlementEvent::CreditsPurchased {kind: CreditKind, qty: i64}` (one kind per event) + the three subscription variants.
+- `crates/server/` — provider-aware axum router. The live MoonPay path:
+  - `providers/moonpay.rs::MoonPayCommerceProvider` — `checkout_url(&checkout)` calls Helio's Charges API and bakes `additionalJSON = {"checkout_id": "<uuid>"}` into the charge; `parse_webhook(body, headers)` decodes Helio envelopes (Bearer auth is done in the handler, **not** in `parse_webhook`). `MoonPayPaylinkRegistry::from_env` already reads `MOONPAY_PAYLINK_ID_DATA_CREDITS` *and* `MOONPAY_PAYLINK_ID_COMPUTE_CREDITS`.
+  - `handlers/webhook_paylink.rs` — the template: (1) `verify_bearer` against `webhook_secrets.paylink_token` → (2) `parse_webhook` → (3) `idempotency_store.claim(provider_id, event_id)` → `AlreadySeen` ⇒ `200` → (4) `resolve_checkout(checkout_id)` (`400` if `checkout_id` absent) → (5) "Race D" short-circuit if already `Succeeded` → (6) map `Sku → CreditKind` (`DataCredits → Data`, `ComputeCredits → Compute` **already wired**) → (7) `apply_entitlement`. Returns `200` on no-op so Helio stops retrying.
+  - `handlers/checkout_start.rs` — `POST /api/payments/checkout/start`, `Claims`-authed, body `{sku: Sku, payment_method: PaymentMethod}` → `{checkout_id, url}`. **Provider-agnostic, already exists.** Gates SKUs with `is_v1()` server-side.
+  - `state.rs::PaymentsState {event_sink, idempotency_store, provider, webhook_secrets}`.
+  - `claims.rs::Claims {user_id}` — reads the `AuthUserId` extension (bridged from overseer JWT middleware) or falls back to `Bearer dev-token → DEV_BYPASS_USER = Uuid::from_u128(1)`.
+- `crates/stripe/` — skeleton; **left untouched** by this plan.
+
+**Internal crate `atelier-backend/atelier-payments/`** (gated):
+
+- `sinks/pg_event_sink.rs::apply_entitlement` — transactional; `CreditsPurchased` ⇒ `insert_purchase` + `mark_succeeded`, in one tx, with an in-tx Race-D re-check.
+- `db/queries/billing/checkouts.rs` — `insert` (sets `expires_at = now() + INTERVAL '30 minutes'`, leaves `external_ref` NULL), `find_by_id`, `mark_succeeded`.
+- `db/queries/billing/row_mapping.rs::checkout_status_from_str` — maps `pending`/`succeeded`/`expired` (the `expired` arm has a stale "computed at read-time / data-integrity bug" comment).
+- read handlers `GET /api/payments/entitlements`, `GET /api/payments/checkouts/{id}`.
+- `secrets.rs` — `PaymentsConfig` is a thin alias of the overledger `WebhookSecrets` (the two MoonPay webhook tokens only).
+- `lib.rs::router(pool, secrets)` builds `PgEventSink` + `PgIdempotencyStore` + a MoonPay provider from env (falls back to a stub if `MOONPAY_API_KEY_*` absent), merges read routes.
+- `atelier-overseer/src/main.rs:257` mounts `atelier_payments::router(pool, secrets)`; `auth_bridge.rs` copies `claims.sub → AuthUserId`.
+
+**Migration** `20260430000001_create_billing_tables.sql` — `billing_checkouts` (`sku TEXT`, `status TEXT` CHECK `IN ('pending','succeeded')`, `expires_at`, partial index `idx_billing_checkouts_pending_expiry WHERE status='pending'`); `billing_subscriptions`; `billing_credit_ledger` (signed `delta`, `kind IN ('data','compute')`, FK `checkout_id`); `billing_webhook_events` (PK `(provider_id, event_id)`).
+
+**`atelier-webapp/`** (gated) — **no payments/credits/entitlements surface exists today.** Has `components/sidebar.rs`, a `login_page.rs`, and the standard auth-aware `http.rs` send pattern. The entire credits UI is net-new.
+
+**What's missing to close the loop:**
+
+- (a) Un-gate `Sku::ComputeCredits` so both single-kind packs are sellable.
+- (b) Persist the `expired` terminal state (sweeper + `_at` columns), so abandoned `pending` checkouts become a real terminal state instead of lingering forever under the partial index.
+- (c) The Leptos credits modal + sidebar chip + an entitlements signal that refetches on window focus.
+- (d) A hermetic acceptance script for the MoonPay credit-pack loop.
+
+Out of scope (deferred): a **direct Stripe integration** (only revisit post-beta if the Helio middleman fee or settlement control becomes load-bearing); real auth (Iteration 5); refunds & disputes; Stripe/Helio subscriptions beyond the existing `Pro`; the credit-spending path (M5 — flat-fee debit at the API layer, pre-FSM, per Q9).
+
+---
+
+## §2 Decisions ledger
+
+Each row: axis → choice → one-line rationale. **Q1–Q8 are the 2026-06-01c grilling-session decisions** that define this version; they supersede the prior draft's Stripe-direct Q3/Q4/Q7/Q10–Q14.
+
+| Q  | Decision | Rationale |
+|----|----------|-----------|
+| Q1 | **Single provider: MoonPay/Helio only.** Delete the direct-Stripe lane for beta-2; `crates/stripe` stays a stub. | MoonPay already does fiat cards (Stripe-as-middleman) *and* crypto. A second integration adds a trust boundary (own key, HMAC, second webhook, second SKU space) and saves only a middleman fee — not worth it in beta. |
+| Q2 | **Two separate single-kind credit packs:** `DataCredits` + `ComputeCredits`. No bundles. | Fits the model verbatim: one `Sku` → one `CreditKind` → one `CreditsPurchased` event → one ledger row, exactly as `webhook_paylink.rs` already maps. Un-gating `ComputeCredits` is `is_v1` + a test fix (`price_usd` is already 100). |
+| Q3 | **Correlation via the `checkout_id` round-trip** (`additionalJSON`); the **trust anchor is our `billing_checkouts` row**, never the wire amounts. Webhook with no `checkout_id` → `400`. | Async, stateless confirmation must attribute to the right user/SKU; reading kind from the row's `Sku` (not Helio's reported `quantity`) prevents over-crediting. Already how the lane works. |
+| Q4 | **Two idempotency layers**, orthogonal: `(provider_id, event_id)` PK (*same event again*) + checkout-status "Race D" guard incl. in-tx re-check (*same checkout again / concurrent*). `200` on no-op. | A = retried/duplicated identical event; B = a second event hitting an already-settled checkout, plus the concurrency window. Already in tree; M4 keeps it. |
+| Q5 | **Persist `expired` only.** Add `succeeded_at` + `expired_at` columns; a 30 s sweeper flips `pending` → `expired` once `now() > expires_at`. **No `failed` state** (nothing on the MoonPay lane writes it). | 3 reachable states (`pending → {succeeded, expired}`), all with real writers. A `failed` state would be unreachable spec debt — and your house rule forbids a state with no transition that can fire it. |
+| Q6 | **Poll-on-focus for live balance — no SSE.** Webapp refetches `GET /api/payments/entitlements` on window-focus. | The beta UX is "leave to a Helio tab and come *back*"; the return *is* a focus event, so a focus-refetch updates the balance exactly when the user is looking — with zero backend push machinery (no `PaymentBus`, no SSE endpoint, no `EventSource`, no token-in-URL). |
+| Q7 | **Modal lifecycle**: focus-refetch + an `entitlements`-watching effect clears the "waiting for payment…" state on a balance increase; a 5-min frontend timeout re-enables buttons on abandonment. | Decouples the modal from Helio redirect fidelity; the server-side sweeper independently expires the orphan `pending` row at 30 min. |
+| Q8 | **Hermetic acceptance** via `PAYMENTS_MOONPAY_API_STUB=1` (short-circuits `checkout_url` to a synthetic URL); the real Helio HTTP round-trip is covered by a per-release manual smoke. | `accept_payments.sh` can drive a stub flag from bash and stay fully offline; matches the "hermetic CI + manual smoke" philosophy. |
+| Q9 | **Flat per-invocation fees** (A1) + **synchronous debit at command-issue time** (B2) + **API-layer guard pre-FSM** (C2). Spending integration = **M5**. | Engine FSMs stay payment-agnostic; M4 ships and is testable without spending wiring. (Unchanged from the original grill.) |
+
+---
+
+## §3 Architecture surfaces
+
+The structural point: **M4 adds no new HTTP routes and no new provider.** Checkout-start, the webhook, entitlements, and checkout-status endpoints all already exist and are provider-agnostic. M4 (a) un-gates a SKU, (b) makes `expired` a persisted state served by a sweeper, and (c) builds the frontend that drives and reflects the existing endpoints.
+
+### §3.1 Crate / module changes
+
+**`atelier-overledger/ledger-types/` + `crates/server/`** (sibling; **ungated**).
+
+- `ledger-types/sku.rs`:
+  - `is_v1()` → include `ComputeCredits`: `matches!(self, Sku::Pro | Sku::DataCredits | Sku::ComputeCredits)`.
+  - Update the unit test `v1_subset_is_pro_and_data_credits` → expect `[Pro, DataCredits, ComputeCredits]` (rename it `v1_subset_is_pro_and_both_credit_packs`).
+  - `price_usd()` for `ComputeCredits` is already `100` — no change. (Sandbox pricing is set on the Helio dashboard pay-link regardless.)
+- `ledger-types/checkout.rs`:
+  - `CheckoutStatus::Expired` becomes a **persistable** terminal state — drop the "computed at read-time, never written" contract from the doc-comment (the sweeper now writes it). `is_terminal()` already returns true for `Succeeded | Expired`; no variant added.
+- `crates/server/src/providers/moonpay.rs`:
+  - Add an optional stub short-circuit in `checkout_url`: if `std::env::var("PAYMENTS_MOONPAY_API_STUB").as_deref() == Ok("1")`, return a synthetic `Url` (`https://moonpay.stub/charge/<checkout_id>`) without the outbound Helio POST. Used only by the hermetic acceptance script (Q8). Documented as test-only, mirroring how the codebase already gates behavior on env.
+  - **No** webhook/provider-trait changes — `parse_webhook` already produces `OneOffCreated`, and the handler already maps both credit packs.
+
+**`atelier-backend/atelier-payments/`** (internal crate; **gated**).
+
+- `db/queries/billing/checkouts.rs` — add two queries:
+  - `mark_expired<'e,E>(exec, id) -> u64` — `UPDATE billing_checkouts SET status='expired', expired_at=now(), updated_at=now() WHERE id=$1 AND status='pending'` (monotonic guard; returns rows affected).
+  - `sweep_expired(pool, now: DateTime<Utc>) -> u64` — `UPDATE billing_checkouts SET status='expired', expired_at=$1, updated_at=$1 WHERE status='pending' AND expires_at < $1` (uses the existing partial index). Returns rows affected.
+  - `mark_succeeded` (existing) gains a `succeeded_at=now()` write (see migration; one-line query edit).
+- `db/queries/billing/row_mapping.rs` — `checkout_status_from_str`: keep the `"expired"` arm, **replace its stale comment** ("computed at read-time / data-integrity bug") with "persisted terminal state, written by the sweeper". No new arm needed (`failed` is out per Q5).
+- `sweeper.rs` (new) — `pub async fn run_expiry_sweeper(pool: PgPool, interval: Duration) -> !`: `tokio::time::interval`, on each tick calls `checkouts::sweep_expired(&pool, Utc::now())` and logs the count. 30 s interval (matches the Iteration-4.A live-grace ticker).
+- `lib.rs` — export `run_expiry_sweeper`. No router change.
+- **No** `billing_cost_catalog.rs`, **no** `checkout_start_stripe.rs`, **no** `sse.rs`, **no** `StripeConfig`, **no** `secrets.rs` change — all were Stripe-lane artifacts.
+
+**`atelier-backend/atelier-overseer/`** (gated) — boot path only.
+
+- `src/main.rs` — after `AppState` construction (near the existing payments-router mount at ~:257), `tokio::spawn(atelier_payments::run_expiry_sweeper(pool.clone(), Duration::from_secs(30)));`.
+- No `Cargo.toml` change (no stripe dep; `atelier-payments` already a member).
+
+### §3.2 Wire surfaces — all pre-existing, unchanged
+
+| Surface | Method | Path | Auth | Body / notes |
+|---------|--------|------|------|--------------|
+| Checkout start | POST | `/api/payments/checkout/start` | Bearer JWT (`Claims`) | `{sku: "data_credits"\|"compute_credits", payment_method}` → `{checkout_id, url}`. `is_v1()` server-gate. |
+| MoonPay webhook | POST | `/payments/moonpay/webhook/paylink` | Bearer (`paylink_token`) | Helio `CREATED` event; `200` always (incl. NoOp), `400` if no `checkout_id`, `401` bad token. |
+| Entitlements | GET | `/api/payments/entitlements` | Bearer JWT | `{plan, credits: {data, compute}}`. |
+| Checkout status | GET | `/api/payments/checkouts/{id}` | Bearer JWT | checkout row DTO (now can report `expired`). |
+
+No new routes. The sweeper is an internal background task, not a wire surface.
+
+### §3.3 Persistence — migration delta
+
+New migration `atelier-backend/migrations/20260601000001_billing_checkouts_expired.sql` (forward-only per `schema.md`; backfill **before** the CHECK tighten so existing M3 `succeeded` rows pass):
+
+```sql
+-- M4: persist the `expired` terminal state + per-state entry timestamps.
+ALTER TABLE billing_checkouts
+    ADD COLUMN succeeded_at TIMESTAMPTZ,
+    ADD COLUMN expired_at   TIMESTAMPTZ;
+
+-- Backfill: existing succeeded rows predate succeeded_at.
+UPDATE billing_checkouts SET succeeded_at = updated_at
+    WHERE status = 'succeeded' AND succeeded_at IS NULL;
+
+-- Widen the status domain to include the now-persisted `expired`.
+ALTER TABLE billing_checkouts
+    DROP CONSTRAINT chk_billing_checkout_status,
+    ADD  CONSTRAINT chk_billing_checkout_status
+         CHECK (status IN ('pending','succeeded','expired'));
+
+-- Defense-in-depth: terminal timestamp populated iff status matches.
+ALTER TABLE billing_checkouts ADD CONSTRAINT chk_billing_checkout_terminal_ts CHECK (
+    (status = 'pending'   AND succeeded_at IS NULL AND expired_at IS NULL) OR
+    (status = 'succeeded' AND succeeded_at IS NOT NULL) OR
+    (status = 'expired'   AND expired_at   IS NOT NULL)
+);
+```
+
+> `idx_billing_checkouts_pending_expiry` (predicate `WHERE status='pending'`) **already exists** from the M3 migration — the sweeper reuses it; do not re-create it. `sku` is already `TEXT`; no SKU schema change (no `failed` state per Q5).
+
+No `billing_cost_catalog.rs` — grants are not bundled; each pack grants one `CreditKind` and the quantity comes from the Helio pay-link / webhook `qty` as today.
+
+### §3.4 Frontend — Leptos (`atelier-webapp`, gated)
+
+All net-new (no existing payments surface). Match the existing `.spawn-modal`/auth-aware `http.rs` patterns.
+
+`src/components/`:
+
+- `credits_chip.rs` (new) — presentational; reads `entitlements: RwSignal<Entitlements>` from context; renders `💳 {compute} cc / {data} dc`; click → `credits_modal_open.set(true)`.
+- `credits_modal.rs` (new) — `<CreditsModal open entitlements />`; renders two `<SkuCard>` (Data credits, Compute credits). State `purchase_in_flight: RwSignal<Option<Sku>>`. `on_buy(sku)`: set in-flight (disable both buttons + show "Waiting for payment…") → `http::post_checkout_start({sku, payment_method})` → `window().open_with_url_and_target(&url, "_blank")` → arm a 5-min `set_timeout` that clears in-flight. An `Effect` watches `entitlements`: when the relevant balance increases, clear in-flight + flash "Credits added ✓".
+- `sku_card.rs` (new) — presentational: name, price_usd, credit kind/qty, on_buy, disabled.
+- `sidebar.rs` (existing) — mount `<CreditsChip/>`.
+- `mod.rs` — re-exports.
+
+`src/`:
+
+- `http.rs` — add `fetch_entitlements() -> Result<Entitlements>` and `post_checkout_start(req) -> Result<CheckoutStartResp>` (typed against `atelier-overledger-ledger-types`; reuse the existing Bearer-token send pattern).
+- `app.rs` — create `entitlements: RwSignal<Entitlements>`, provide via context; initial `fetch_entitlements()` on mount; register a **window `focus` listener** (`web_sys`) that re-runs `fetch_entitlements()` and writes the signal. `on_cleanup` removes the listener.
+- `style/` — modal + chip CSS (parity with `.spawn-modal`).
+
+> No `payments_sse.rs`, no `EventSource`, no `?token=` query auth — deleted with the SSE subtree (Q6).
+> Note the two independent timers: the **frontend** 5-min timeout only re-enables the modal buttons; the **server** keeps the row `pending` until its 30-min `expires_at`, after which the sweeper marks it `expired`. They don't need to agree.
+
+---
+
+## §4 Phased implementation
+
+Each phase compiles + passes its own tests before the next. Total budget ≈ 1–1.5 days (down from ~3 — the Stripe lane is gone). **Gating:** M4.1 is on the ungated `atelier-overledger` sibling; M4.2–M4.4 touch gated repos and need a per-repo grant before edits.
+
+### M4.1 — Un-gate ComputeCredits + persistable Expired + stub flag (ungated: `atelier-overledger`)
+
+- `ledger-types/sku.rs` — `is_v1` includes `ComputeCredits`; fix the `v1_subset` test.
+- `ledger-types/checkout.rs` — `Expired` doc-comment: persistable.
+- `crates/server/src/providers/moonpay.rs` — `PAYMENTS_MOONPAY_API_STUB` short-circuit in `checkout_url`.
+
+Acceptance: `cd atelier-overledger && cargo test -p atelier-overledger-ledger-types -p atelier-overledger-server`.
+
+### M4.2 — Migration + sweeper + queries (**gated: `atelier-backend`**)
+
+- `migrations/20260601000001_billing_checkouts_expired.sql` (§3.3).
+- `atelier-payments/src/db/queries/billing/checkouts.rs` — `mark_expired`, `sweep_expired`, `succeeded_at` on `mark_succeeded`.
+- `atelier-payments/src/db/queries/billing/row_mapping.rs` — `expired` comment fix.
+- `atelier-payments/src/sweeper.rs` + `lib.rs` export.
+- `atelier-overseer/src/main.rs` — spawn the sweeper.
+- `atelier-payments/tests/fsm_transitions.rs` (new) — `#[sqlx::test]`: (a) `mark_succeeded` sets `status='succeeded'` + `succeeded_at`; (b) a `pending` row with `expires_at` in the past → `sweep_expired` returns 1, row is `expired` + `expired_at` set; (c) `sweep_expired` does **not** touch `succeeded` rows; (d) `mark_expired` on an already-`succeeded` row returns 0 (monotonic guard); (e) webhook replay still grants exactly one ledger row (regression guard over the existing idempotency path).
+
+Acceptance: `cargo test -p atelier-payments`.
+
+### M4.3 — Leptos modal + chip + entitlements signal (**gated: `atelier-webapp`**)
+
+- `src/components/{credits_chip,credits_modal,sku_card}.rs`; `sidebar.rs` mount; `mod.rs`.
+- `src/http.rs` — `fetch_entitlements`, `post_checkout_start`.
+- `src/app.rs` — entitlements context + window-focus refetch listener.
+- `style/`.
+
+Acceptance: `trunk build --release` green; manual browser test against `localhost:8000` with a pre-seeded user JWT (buy → Helio tab → return → chip updates on focus).
+
+### M4.4 — Acceptance script + infra (**gated: `atelier-infra`**)
+
+- `scripts/accept_payments.sh` — 5 gates (§5).
+- `.env.template` — `MOONPAY_PAYLINK_ID_DATA_CREDITS=`, `MOONPAY_PAYLINK_ID_COMPUTE_CREDITS=`, `MOONPAY_API_KEY_PUBLIC=`, `MOONPAY_API_KEY_SECRET=`, `MOONPAY_WEBHOOK_TOKEN_PAYLINK=`, `PAYMENTS_MOONPAY_API_STUB=` (commented).
+- `docker-compose.beta.yml` — pass-through new env to the overseer container.
+- `docs/payments-dev-loop.md` — manual loop: create the two Helio dashboard pay-links (data / compute) → record their IDs in `.env` → register the paylink webhook → click Buy in the modal → pay with a test card / devnet wallet → confirm balance updates on focus.
+
+Acceptance: `./scripts/accept_payments.sh` 5 gates pass; one manual Helio loop before declaring M4 closed.
+
+---
+
+## §5 Acceptance gates — `accept_payments.sh`
+
+Hermetic, ~10 s. Needs `docker compose -f docker-compose.beta.yml up -d`. Env: `MOONPAY_WEBHOOK_TOKEN_PAYLINK=test-paylink-token PAYMENTS_MOONPAY_API_STUB=1 AUTH_DEV_BYPASS=true` (+ dummy `MOONPAY_API_KEY_*` so the provider constructs).
+
+| Gate | Check |
+|------|-------|
+| (i) Checkout start | `POST /api/payments/checkout/start {sku:"compute_credits",payment_method:"card_via_stripe"}` + `Authorization: Bearer dev-token` → `200` + `{checkout_id, url:"https://moonpay.stub/charge/…"}`. `psql`: `billing_checkouts` row `status='pending'`, `sku='atelier-credits-compute'`, `external_ref IS NULL`. |
+| (ii) Webhook happy path | Forge a Helio `CREATED` payload with `additionalJSON.checkout_id=<checkout_id>` and `quantity:N`. POST `/payments/moonpay/webhook/paylink` with `Authorization: Bearer test-paylink-token` → `200`. `psql`: `billing_webhook_events` row inserted; `billing_checkouts.status='succeeded'`, `succeeded_at IS NOT NULL`; `billing_credit_ledger` 1 row (`kind='compute'`, `delta=N`, `reason='purchase'`, linked `checkout_id`). `GET /api/payments/entitlements` → `credits.compute == N`. |
+| (iii) Replay | Re-POST identical payload → `200`. No new `billing_webhook_events` row, no new ledger row, balance unchanged. |
+| (iv) Bad auth | POST with a wrong Bearer token → `401`. `psql`: no DB writes. |
+| (v) Expiry sweep | Insert (or age) a `pending` checkout with `expires_at` in the past; run the sweeper (or wait one 30 s tick) → `psql`: that row is `status='expired'`, `expired_at IS NOT NULL`; a *fresh* `pending` row within its window is untouched. |
+
+Exit 0 on all-pass; non-zero + descriptive log otherwise. Matches `accept_i4_5.sh`/`accept_w4a.sh` shape (sequential gates, `psql -A -t -c` assertions, trap cleanup on EXIT).
+
+---
+
+## §6 Risks & non-goals
+
+**Non-goals for M4** (tracked / deferred):
+
+- **Direct Stripe integration** — deferred indefinitely; revisit post-beta only if the Helio middleman fee or own-account settlement/refund control becomes load-bearing. `crates/stripe` stays a stub.
+- **Real auth** — Iteration 5. M4 runs on dev-bypass + pre-seeded users + long-lived JWTs.
+- **Refunds & disputes** — handled manually in the Helio/MoonPay dashboard during beta.
+- **Subscriptions** — the existing `Pro` subscription path is untouched; no new subscription SKUs.
+- **Bundled SKUs** — explicitly dropped (Q2); credits are sold per-kind.
+- **Live push / multi-device** — poll-on-focus only (Q6); SSE is a post-beta option if multi-device live balance becomes a need.
+- **Credit spending** — M5. Fit/Task endpoints don't yet debit; users accumulate credits with no spend path in M4 alone (by design).
+
+**Risks**:
+
+- (R1) **Helio webhook schema drift** — the `parse_webhook` decoder already tolerates the captured devnet shape; the per-release manual smoke catches drift. No change from M3.
+- (R2) **Frontend/server timer mismatch** — the modal's 5-min re-enable vs the server's 30-min `expires_at` are intentionally independent; a user who pays at minute 6 still gets credited (the webhook resolves the still-`pending` row), and the chip updates on next focus. Documented in §3.4.
+- (R3) **Migration on a non-empty M3 DB** — `succeeded_at` backfill must precede the terminal-ts CHECK; encoded in §3.3 statement order. `sku`/index unchanged.
+- (R4) **Sweeper vs late webhook race** — a webhook landing in the same instant the sweeper fires: both guard on `WHERE status='pending'`, so exactly one wins. If the sweeper wins first (row → `expired`), the subsequent `CreditsPurchased` finds a non-`pending` row and the in-tx Race-D check makes it a no-op → **a paid-but-swept checkout would not be credited.** Mitigation: the 30-min `expires_at` is far longer than any real Helio confirmation latency (seconds–minutes), so this window is effectively closed in practice. If observed, lengthen `expires_at` or have `mark_expired` skip rows updated within the last N seconds. Flagged, not fixed, for beta.
+- (R5) **`ComputeCredits` pay-link must exist before un-gating ships to prod** — `is_v1=true` makes the server accept a `compute_credits` checkout-start, but `checkout_url` returns `BadCheckout` if `MOONPAY_PAYLINK_ID_COMPUTE_CREDITS` is unset. Order: create the Helio pay-link + set env *before* the un-gate reaches a user-facing deploy. Documented in `payments-dev-loop.md`.
+
+---
+
+## §7 Handoff to M5 — credit spending integration
+
+M5 is the debit side + the spending guardrail (Q9: A1 + B2 + C2).
+
+- `atelier-payments/src/guard.rs` (new) — `reserve_or_402(pool, user_id, kind, amount, reason, ref_id) -> Result<(), GuardError>`: one tx, read balance via `balances_for_user`; `balance < amount` ⇒ `Insufficient`; else `insert_debit` (`delta = -amount`).
+- `credit_ledger.rs` — `insert_debit(tx, user_id, kind, qty, reason, ref_id)` (negative-delta mirror of `insert_purchase`).
+- `atelier-overseer .../handlers/services.rs` — `POST /api/services` calls `reserve_or_402(.., CreditKind::Data, TASK_RUN_COST, "task_run", task_id)` **before** `Scheduler::deploy_service`; `402` short-circuits.
+- Hawkes-fit dispatch — same with `CreditKind::Compute, HAWKES_FIT_COST`.
+- Cost constants (`HAWKES_FIT_COST`, `TASK_RUN_COST`) — land wherever spending lives (a small `costs.rs`); no SKU catalog needed.
+- Modal copy footnote: "1 task run = N dc · 1 Hawkes fit = M cc".
+- `accept_m5.sh` — sufficient ⇒ `200` + debit; insufficient ⇒ `402` + no debit; race (two parallel reserves on the last credit) ⇒ exactly one `200` + one `402`.
+
+**Spec edits in M5**: none in the FSM Atlas (Q9 C2) — Engine FSMs stay payment-agnostic; the guard is API-layer, not in T-T1/B-T1.
+
+**Open in M5**: refund policy on mid-run Task failure. Default: no refund. Two-phase reservation is the v0.1-beta-3 evolution if feedback demands it.
+
+---
+
+## §8 Open sub-questions (housekeeping)
+
+- (a) **Cancellation UX** — no explicit cancel; the sweeper + the 30-min `expires_at` handle abandonment server-side; the modal's 5-min timeout re-enables buttons client-side.
+- (b) **`succeeded_at` on `mark_succeeded`** — one-line query edit; harmless on the subscription path (`SubscriptionStarted` also calls `mark_succeeded`, so subscription checkouts get a `succeeded_at` too — correct).
+- (c) **Component home** — `credits_modal`/`sku_card`/`credits_chip` could live in `atelier-overledger/crates/ui` (shared Leptos crate) instead of `atelier-webapp`. Decide at M4.3 kickoff after reading the `ui` crate; default to `atelier-webapp` if in doubt.
+- (d) **Sweeper interval** — 30 s is arbitrary-but-consistent with the Iteration-4.A ticker; expiry latency tolerance is minutes, so even 5 min would be fine. Keep 30 s.
+
+---
+
+## §9 File-level edit summary
+
+| Repo | New files | Modified files |
+|------|-----------|---------------|
+| `atelier-overledger` (sibling; **ungated**) | — | `ledger-types/src/{sku,checkout}.rs`; `crates/server/src/providers/moonpay.rs` |
+| `atelier-backend` (**gated**) | `migrations/20260601000001_billing_checkouts_expired.sql`; `atelier-payments/src/sweeper.rs`; `atelier-payments/tests/fsm_transitions.rs` | `atelier-payments/src/lib.rs`; `atelier-payments/src/db/queries/billing/{checkouts,row_mapping}.rs`; `atelier-overseer/src/main.rs` |
+| `atelier-webapp` (**gated**) | `src/components/{credits_chip,credits_modal,sku_card}.rs` | `src/components/{sidebar,mod}.rs`; `src/{http,app}.rs`; `style/*` |
+| `atelier-infra` (**gated**) | `scripts/accept_payments.sh`; `docs/payments-dev-loop.md` | `.env.template`; `docker-compose.beta.yml` |
+
+Net LOC estimate: ~120 Rust (sweeper + queries + tests) + ~250 Leptos + ~25 SQL + ~150 bash + ~80 markdown. The `crates/stripe` skeleton, the ~600 LOC of provider/HMAC/checkout-session code, and the SSE subtree are all **not built**.
+
+---
+
+## §10 Closure criteria
+
+M4 is closed when, in order:
+
+1. All phases' `cargo test` green on the implementer's machine.
+2. `./scripts/accept_payments.sh` exits 0 (all 5 gates).
+3. One manual Helio loop completes (real Test-Mode card or devnet wallet → `CREATED` webhook → balance visible in the sidebar chip after focus-refetch).
+4. §11 Session Log entry appended (status + M5 open issues).
+
+After M4, next M-series work is M5 (spending). Next Engine-iteration work remains Iteration 4.7 per the 2026-05-31 `CLAUDE.md` entry.
+
+---
+
+## §11 Session Log
+
+Append-only. Same format as the workspace `CLAUDE.md` session log.
+
+```
+### YYYY-MM-DD — <phase> <status>
+- Scope:        <files / sections touched>
+- Decisions:    <one bullet per decision worth recovering later>
+- Open issues:  <unresolved, with owner if known>
+- Next:         <handoff for the next phase>
+```
+
+### 2026-06-01 — Plan revision: re-scoped to MoonPay-only (pre-implementation) DONE
+- Scope:        Full rewrite of this file. Re-rooted M4 from "build a direct-Stripe lane" to "finish the credit-pack loop on the existing MoonPay/Helio lane." Stripe-direct design (prior 2026-06-01b version) discarded.
+- Decisions:    (Q1) Single provider — MoonPay only; `crates/stripe` stays a stub; direct Stripe deferred indefinitely (MoonPay already covers fiat-via-Stripe-middleman + crypto). (Q2) Two single-kind packs (DataCredits + ComputeCredits); no bundles — un-gate ComputeCredits via `is_v1` (+ fix `v1_subset` test; price already 100). (Q5) Persist `expired` only (succeeded_at + expired_at + 30 s sweeper); no `failed` (unreachable on MoonPay). (Q6) Poll-on-focus, no SSE — entire PaymentBus/SSE/EventSource subtree deleted. (Q7) Modal: focus-refetch + entitlements-effect clears in-flight; 5-min timeout for abandonment. (Q8) Hermetic acceptance via `PAYMENTS_MOONPAY_API_STUB=1`; real HTTP via manual smoke. M4 adds **no new routes, no new provider** — checkout-start/webhook/entitlements all pre-exist and are provider-agnostic.
+- Open issues:  (R4) sweeper-vs-late-webhook race (mitigated by 30-min expires_at ≫ confirmation latency). (R5) ComputeCredits Helio pay-link + env must exist before the un-gate reaches prod. Gated repos (backend/webapp/infra) need a grant before M4.2+.
+- Next:         M4.1 on the ungated `atelier-overledger` sibling once the implementer confirms the revision.
+
+### 2026-06-01 — M4.1 (ungated: atelier-overledger) DONE
+- Scope:        `ledger-types/src/sku.rs` (is_v1 includes ComputeCredits; test → `v1_subset_is_pro_and_both_credit_packs` asserts [Pro, DataCredits, ComputeCredits]; module + is_v1 docs); `ledger-types/src/checkout.rs` (CheckoutStatus::Expired documented as persisted/sweeper-written); `crates/server/src/providers/moonpay.rs` (PAYMENTS_MOONPAY_API_STUB=1 short-circuit in checkout_url → `https://moonpay.stub/charge/<id>`).
+- Decisions:    Un-gating ComputeCredits needed only is_v1 + the test — all const-fn projections (slug `atelier-credits-compute`, price_usd=100, name, blurb, empty bullets) already existed. checkout_start `is_v1` gate + `ui/pricing.rs` CTA + `webhook_paylink` ComputeCredits→Compute mapping all pick up the change automatically (no edits). No new files.
+- Open issues:  (R5) ComputeCredits Helio pay-link (`MOONPAY_PAYLINK_ID_COMPUTE_CREDITS`) must exist + be set in env before the un-gate reaches a user-facing deploy, else `checkout_url` returns BadCheckout for compute_credits.
+- Verify:       `cargo test -p atelier-overledger-ledger-types -p atelier-overledger-server` green on M4-machine (9 unit + 6 integration tests pass).
+- Next:         M4.2 — migration + sweeper + queries in `atelier-backend` (GATED; needs grant). Add `succeeded_at`+`expired_at`, status CHECK +`expired`, `mark_expired`/`sweep_expired`, `sweeper.rs`, spawn from overseer main, `fsm_transitions.rs` sqlx tests.
+
+### 2026-06-01 — M4.2 (gated: atelier-backend) DONE
+- Scope:        NEW `migrations/20260601000001_billing_checkouts_expired.sql` (add succeeded_at+expired_at, backfill succeeded rows, widen status CHECK → +expired, terminal-ts CHECK); `atelier-payments/src/db/queries/billing/checkouts.rs` (mark_succeeded now stamps succeeded_at + WHERE status='pending' guard; new mark_expired guarded; new sweep_expired(now)); `row_mapping.rs` (expired comment → persisted-by-sweeper); NEW `atelier-payments/src/sweeper.rs` (run_expiry_sweeper, 30s, MissedTickBehavior::Skip, errors logged-and-swallowed); `atelier-payments/src/lib.rs` (`pub mod sweeper` + re-export); `atelier-overseer/src/main.rs` (spawn sweeper after payments mount, gated on state.db()); NEW `atelier-payments/tests/fsm_transitions.rs` (5 sqlx::test cases — succeeded_at stamp, sweep-past-pending-only, sweep-ignores-succeeded, mark_expired monotonic, Race-D double-apply → 1 ledger row).
+- Decisions:    `sweep_expired` takes `now: DateTime<Utc>` as a bind (not SQL now()) for test injectability. `mark_succeeded` gained the `status='pending'` guard so succeeded_at can't be re-stamped (terminal-ts CHECK enforces it too). No new routes/provider. No `failed` state.
+- Open issues:  (R4) sweeper-vs-late-webhook race — 30-min expires_at ≫ Helio latency keeps the window closed in practice.
+- Verify:       `cargo test -p atelier-payments` GREEN on M4-machine (5/5 fsm_transitions sqlx tests pass) with `DATABASE_URL=postgres://atelier:atelier_dev@localhost:5432/atelier` against the compose postgres. Migration applies on overseer boot via `sqlx::migrate!`.
+- Next:         M4.3 — Leptos credits modal + chip + entitlements focus-refetch in `atelier-webapp` (GATED; needs grant).
+
+### 2026-06-01 — M4.3 (gated: atelier-webapp) DONE
+- Scope:        NEW `src/payments.rs` (hand-rolled Entitlements/CreditBalances DTOs, CreditsUi context struct, fetch_entitlements + post_checkout_start, two-pack PACKS catalog — webapp does NOT dep on ledger-types, matches house DTO style); NEW `src/components/{credits_chip,sku_card,credits_modal}.rs`; `src/main.rs` (+`mod payments`); `src/components/mod.rs` (+3 modules); `src/components/sidebar.rs` (mount `<CreditsChip/>` mt-auto, reads CreditsUi context); `src/app.rs` (Dashboard: provide CreditsUi, initial entitlements fetch, window-`focus` refetch via raw web_sys Closure, mount `<CreditsModal/>`); `Cargo.toml` (+`EventTarget` web-sys feature for add_event_listener); `style/tailwind.css` (+credits-chip/panel/card CSS block, @layer components, existing --c-* vars).
+- Decisions:    Q6 poll-on-focus implemented as a raw `web_sys` `Closure` focus listener (house idiom — codebase uses Closure, not leptos window_event_listener; no SSE). SkuCard is signal-based (`set_buy: WriteSignal<Option<String>>`) not Callback-based (codebase has zero Callback usage). Success detection = balance-increase vs a baseline captured at buy-time (avoids false positives from same-value refetches); abandonment = 5-min `gloo_timers::callback::Timeout` re-enable. SKU slugs sent as `data_credits`/`compute_credits`, payment_method `card_via_stripe`. Modal/CSS mirror `.modal-backdrop`/`.btn` + a compact `.credits-panel`.
+- Open issues:  trunk build not run (no wasm toolchain in authoring sandbox). Component-home (§8c: could live in overledger `crates/ui`) deferred — kept in webapp.
+- Verify:       `trunk serve` GREEN on M4-machine — chip renders bottom-of-sidebar, modal opens with both packs ($100, accent price, blurbs, Buy). CORS is `CorsLayer::permissive()` so :8080→:8000 is fine. Full Buy round-trip needs overseer on :8000 (env: AUTH_DEV_BYPASS, DATABASE_URL, MOONPAY_WEBHOOK_TOKEN_PAYLINK/_SUBSCRIPTION, PAYMENTS_MOONPAY_API_STUB=1); balance-tick needs a webhook (M4.4).
+- Next:         M4.4 — `accept_payments.sh` + `.env.template`/compose/dev-loop doc in `atelier-infra` (GATED; needs grant).
+
+### 2026-06-02 — M4.3 follow-up bugfix: CORS on merged payments routes (atelier-backend)
+- Scope:        `atelier-overseer/src/main.rs` — layer `tower_http::cors::CorsLayer::permissive()` onto `atelier_payments::router(...)` BEFORE `.merge()` into the base router.
+- Decisions:    `build_router`'s `CorsLayer` (api/rest/mod.rs:69) only wraps routes defined before it; the payments router is merged onto build_router's OUTPUT, so `/api/payments/*` had no CORS layer. Browser preflight (OPTIONS on checkout/start, triggered by the Authorization + application/json headers) got no Access-Control-Allow-* headers → "Failed to fetch" / NetworkError in Chrome+Firefox, while curl (no CORS) returned 200. Fix layers CORS onto the payments router itself (no double-wrapping of base routes → no duplicate ACAO header). This was the real cause of the earlier "NetworkError" too, not "backend down".
+- Open issues:  None. Restart overseer to pick up the rebuilt binary.
+- Verify:       After restart, browser Buy returns 200 + opens the moonpay.stub tab; chip entitlements GET also succeeds (was also CORS-blocked before).
+
+### 2026-06-02 — M4.4 (gated: atelier-infra) DONE — M4 functionally complete
+- Scope:        NEW `scripts/verify/accept_payments.sh` (5 gates: checkout-start→stub URL+pending row; forged Bearer `CREATED` webhook→succeeded+1 ledger row+balance+QTY; replay no-op; bad-auth 401; expiry sweep past-due→expired within a tick); `docker-compose.beta.yml` overseer service gains MOONPAY_WEBHOOK_TOKEN_PAYLINK/_SUBSCRIPTION (default `dummy`, GATE the mount), PAYMENTS_MOONPAY_API_STUB (default `0`), MOONPAY_API_KEY_*/PAYLINK_ID_* (empty); NEW `.env.payments.example`; NEW `docs/payments-dev-loop.md` (hermetic loop A + real-Helio loop B).
+- Decisions:    MoonPay webhook is Bearer (not HMAC) → forging is a plain JSON POST with `Authorization: Bearer <token>`, no openssl. Script targets an ALREADY-RUNNING overseer (the cargo-run dev flow), does not manage the stack. Balance asserted as baseline+QTY (ledger is cumulative across runs). Gate (v) polls up to 45s for the 30s sweeper tick. `bash -n` clean; chmod +x.
+- Open issues:  Real-Helio loop (B) needs dashboard pay-links + tunnel — out of scope to run here. `.env.template` (full) doesn't exist in-repo; used `.env.payments.example` + the doc instead. Also surfaced + fixed during bring-up: (1) CORS on merged payments routes (2026-06-02 bugfix entry above); (2) `psql -At` leaked the `INSERT 0 1` tag into a captured uuid → added `-q` to `psql_q`.
+- Verify:       GREEN on M4-machine 2026-06-02 — `./scripts/verify/accept_payments.sh` → ALL 5 GATES PASSED (overseer run with PAYMENTS_MOONPAY_API_STUB=1 + MOONPAY_WEBHOOK_TOKEN_PAYLINK=dummy + compose postgres). compute 500→1000 grant, replay no-op, 401 bad-auth, past-due→expired sweep.
+- Next:         M4 §10 status: (1) cargo tests green ✅ (M4.1 ledger-types+server, M4.2 atelier-payments); (2) trunk build ✅ (M4.3, renders in browser); (3) accept_payments.sh exit 0 ✅. Remaining: optional real-Helio manual smoke (loop B, needs a Helio account) before a formal "closed" stamp. Then M5 (credit spending/debit). Engine-axis remains Iteration 4.7.
+```
+```

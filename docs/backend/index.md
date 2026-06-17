@@ -1,6 +1,6 @@
-# Backend reference
+# Platform API
 
-The Atelier backend exposes three transport layers:
+The Atelier platform backend exposes three transport layers:
 
 - **REST** at `:8000` for synchronous resource operations (subscriptions, dashboard stats, worker spawn/control).
 - **WebSocket** at `/ws/live` for real-time fleet telemetry.

@@ -1,0 +1,965 @@
+# Boot Manual — Atelier Engine v0.1
+
+End-to-end runbook for the three deployment paths Atelier supports today. Active beta cut: **v0.1-beta-2** (BYO-infra Market Data Collection, Iteration 4.x). This file evolves in place — for iteration cadence and what's currently in flight, see `engineering-notes.md`. For the success criteria the platform is shipping against, see `product-notes.md`.
+
+| Path | Audience | Outcome |
+|---|---|---|
+| **A · Local Dev** | Engineer working on the platform | Single-machine stack: backend + webapp + agent on `localhost`. Fastest iteration loop. |
+| **B · Production Hosting** | Operator standing up `iteralabs.xyz/atelier` (webapp) + `/atelier/docs` (MkDocs) for an alive demo | One Docker image (SPA + MkDocs + nginx) behind Cloudflare Tunnel; backend runs alongside on the same host. |
+| **C · End-User Agent** | Researcher who got credentials from the webapp and wants to start collecting data | Single `docker run` on their own machine; data lands as Parquet on local disk; appears live in the dashboard. |
+
+**Iteration status snapshot (2026-05-12).** 4.1 / 4.2 / 4.3 / 4.4 shipped end-to-end (live verified via `accept_w4a.sh` + `accept_i4_4.sh`). 4.5 partial — Parquet writes work and ArtifactFrames reach Kafka, but lineage rows in `artifacts` table are blocked on the cross-process `task_id` allocation gap. 4.6 + 4.7 are the active closeout (see `engineering-notes.md`). For the demo, the user-visible loop (use-case steps 1–6) works; lineage persistence does not until 4.6 lands.
+
+```mermaid
+flowchart LR
+    A[1·Clean] --> B[2·Config] --> C[3·Build] --> D[4·Infra]
+    D --> E[5·Platform] --> F[6·Deploy] --> G[7·Agent]
+    G --> H[8·Verify] --> I[9·TearDown]
+```
+
+> **Pre-reqs (all paths):** Docker ≥ 24 + Compose v2. Path A also needs Rust stable, `sqlx-cli`, and `trunk`. Path B also needs `cloudflared` installed on the demo server. Path C just needs Docker.
+
+---
+
+# Path A · Local Dev (cold machine → torn down)
+
+## A.1 · Clean
+
+```bash
+cd ~/git/iteralabs/atelier-infra
+docker compose -f docker-compose.beta.yml down -v --remove-orphans
+docker builder prune -af && docker image prune -af
+for r in atelier-proto atelier-sdk atelier-backend atelier-webapp; do
+  (cd ~/git/iteralabs/$r && cargo clean)
+done
+```
+
+List the usage of the ports.
+
+```bash
+sudo ss -tulpn
+```
+
+In case postgreSQL is running in the background as a system default
+
+```bash
+sudo systemctl stop postgresql
+sudo systemctl disable postgresql
+```
+
+## A.2 · Configure with either the `source .env` or the following:
+
+```bash
+cd ~/git/iteralabs/atelier-infra
+SECRET=$(openssl rand -base64 48)
+cat > .env <<EOF
+# --- Port Config --- #
+WEBAPP_PUBLIC_PORT=3000      # cloudflared/config.yml iteralabs.xyz/* → :3000
+GATEWAY_GRPC_PORT=50051      # cloudflared/config.yml gateway.iteralabs.xyz → :50051
+GATEWAY_HEALTH_PORT=8082
+
+# --- Internal only
+OVERSEER_REST_PORT=8000      # webapp nginx proxies to it
+OVERLEDGER_PORT=8090
+POSTGRES_PORT=5432
+KAFKA_PORT=9092
+KAFKA_L_PORT=29092
+ZOOKEEPER_CLIENT_PORT=2181
+ZOOKEEPER_TICK_TIME=2000
+
+# --- Secrets Config --- #
+GATEWAY_JWT_SECRET=UvzuM91Qga3k+EALnEHPu02RyHXP81gmV9ZpD4KILdnlMmQSZT3ZCcGg66wyT6iv
+JWT_SECRET=$GATEWAY_JWT_SECRET
+
+# --- Usability configs for DEMO --- #
+AUTH_DEV_BYPASS=true
+BINDING_PENDING_GRACE_MS=600000
+
+# --- Logs config --- #
+RUST_LOG=atelier_overseer=debug,atelier_gateway=debug,info,sqlx=warn
+EOF
+```
+
+- `BINDING_PENDING_GRACE_MS=600000` (10 min) keeps the §1.8.1 grace ticker from sweeping a 
+Pending Binding while staging the agent. Production: `60000`. 
+- Both `GATEWAY_JWT_SECRET` and `JWT_SECRET` must hold the **same** 
+value — the gateway and overseer sign / validate against it.
+
+## A.3 · Build
+
+Build everything from the docker-compose-beta.yml
+
+```bash
+cd ~/git/iteralabs/atelier-infra
+docker compose -f docker-compose.beta.yml up --build -d
+```
+
+After a succesfull run, it should show five additions: 
+
+- 5432 (postgres, docker proxy)
+- 8000 (overseer)
+- 8082 (gateway healthz)
+- 50051 (gateway gRPC)
+- 3000 (webapp). 
+- 9092 (kafka)
+
+At that point the public curl -vI https://gateway.iteralabs.xyz 
+will return something other than 502 and the BYO end-to-end test becomes runnable.
+
+This is an example, IPv6 and IPv4 might change
+```bash
+* Host gateway.iteralabs.xyz:443 was resolved.
+* IPv6: 2606:4700:3036::ac43:a4e8, 2606:4700:3037::6815:39a3
+* IPv4: 172.67.164.232, 104.21.57.163
+*   Trying [2606:4700:3036::ac43:a4e8]:443...
+* Connected to gateway.iteralabs.xyz (2606:4700:3036::ac43:a4e8) port 443
+```
+
+Generate the lockfile for sharing it cross layers in docker build.
+
+```bash
+cd ~/git/iteralabs/atelier-sdk   && cargo generate-lockfile
+cd ~/git/iteralabs/atelier-proto && cargo generate-lockfile
+```
+
+Build atelier-agent
+
+```bash
+docker build -f ~/git/iteralabs/atelier-infra/dockerfiles/agent.Dockerfile \
+    -t iteralabs/atelier-agent:latest ~/git/iteralabs
+```
+
+The last line builds the agent image used in §A.7 (and consumed verbatim by Path C end-users). 
+The agent is intentionally **not** a workspace member of `atelier-sdk` — its Dockerfile uses a 
+standalone `cd atelier-sdk/atelier-agent && cargo build --release` with 
+`CARGO_TARGET_DIR=/app/atelier-sdk/target` for shared cache. See `agent.Dockerfile` header note.
+
+## A.4 · Boot Individual Components of the Infra
+
+### Selective building
+
+In case that the preference is to build only the database.
+
+```bash
+cd ~/git/iteralabs/atelier-infra
+docker compose -f docker-compose.beta.yml up -d postgres
+docker compose -f docker-compose.beta.yml up postgres-init
+```
+
+To build only the Internal Message Broker with Kafka and Zookeeper.
+
+```bash
+cd ~/git/iteralabs/atelier-infra
+docker compose -f docker-compose.beta.yml up -d zookeeper kafka
+docker compose -f docker-compose.beta.yml up kafka-init
+```
+
+The following command must list 7 topics: 
+
+- `lifecycle.events`
+- `control.manifests`
+- `control.commands`
+- `telemetry.reports`
+- `artifact.frames`
+- `dataset.events`
+- `events.bus`
+
+```bash
+docker compose -f docker-compose.beta.yml exec kafka \
+  kafka-topics --bootstrap-server kafka:29092 --list
+```
+
+To Boot the Gateway and the Overseer backend services together.
+
+```bash
+docker compose -f docker-compose.beta.yml up -d gateway overseer
+docker compose -f docker-compose.beta.yml logs -f gateway overseer
+```
+
+And to Boot the WebApp (FrontEnd)
+
+```bash
+docker compose -f docker-compose.beta.yml up -d webapp
+```
+
+Wait for `availability matrix: Ready` (overseer) and `gRPC listening on 0.0.0.0:50051` (gateway). 
+No `BrokerTransportFailure` loops. Webapp lands at `http://localhost:3000`.
+
+## A.6 · Deploy a Service
+
+Webapp should be accessible at `http://localhost:3000`. There are two ways to deploy a service: 
+
+1. Use the UI and SpawnModal (the fastest path)
+
+    1. (+) worker
+    2. select options
+    3. click deploy
+
+2. curl with the actual REST contract:
+
+    1. Define the config.toml contents
+    2. Form the curl command with a POST method
+
+```bash
+MANIFEST_TOML='[collect]
+exchange = "binance"
+[collect.datatypes.orderbook]
+enabled = true
+depth = 50
+[collect.datatypes.trades]
+enabled = false
+[collect.datatypes.liquidations]
+enabled = false
+[collect.datatypes.funding_rates]
+enabled = false
+[collect.datatypes.open_interest]
+enabled = false
+[collect.sync]
+sync_mode = "on_time"
+flush_threshold = 9000
+[collect.sync.update_frequency]
+value = 250
+unit = "Millis"
+[[collect.output]]
+type = "parquet"
+dir = "datasets/collected/binance/"
+[[collect.output]]
+type = "terminal"
+[[workers]]
+symbol = "BTCUSDT"'
+
+curl -s -X POST http://localhost:8000/api/services \
+  -H "Authorization: Bearer dev-token" -H "Content-Type: application/json" \
+  -d "$(jq -n --arg toml "$MANIFEST_TOML" '{kind:"data", manifest_toml:$toml}')" | jq
+```
+
+Capture the following elements from the response: 
+
+- `service_id` : 91409e7b-3a28-4a62-a722-4aea6a3cdbd1
+- `binding_id` : 62e83161-cdd4-439a-9ba1-5e86d628123a
+- `gateway_url` : https://gateway.iteralabs.xyz
+- `token` : eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJzZXNzaW9uX2lkIjoiZjliZjMxOTgtNzlmZS00OWViLWJhMGEtZDMyYjYwNDFlYjY3IiwiYmluZGluZ19pZCI6IjYyZTgzMTYxLWNkZDQtNDM5YS05YmExLTVlODZkNjI4MTIzYSIsInNlcnZpY2VfaWQiOiI5MTQwOWU3Yi0zYTI4LTRhNjItYTcyMi00YWVhNmEzY2RiZDEiLCJjYXBhYmlsaXRpZXMiOlsiY29tbWFuZF9jaGFubmVsIiwidGVsZW1ldHJ5IiwiYXJ0aWZhY3RzIl0sImV4cCI6MTc4MDU4MDM5NCwiaWF0IjoxNzc5OTc1NTk0fQ.YqU0mEL1vQnJTPk2gJ5yh2Cmhoikz4sWHIOUNaY4Yj4
+
+```bash
+export TOKEN_JWT=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJzZXNzaW9uX2lkIjoiZjliZjMxOTgtNzlmZS00OWViLWJhMGEtZDMyYjYwNDFlYjY3IiwiYmluZGluZ19pZCI6IjYyZTgzMTYxLWNkZDQtNDM5YS05YmExLTVlODZkNjI4MTIzYSIsInNlcnZpY2VfaWQiOiI5MTQwOWU3Yi0zYTI4LTRhNjItYTcyMi00YWVhNmEzY2RiZDEiLCJjYXBhYmlsaXRpZXMiOlsiY29tbWFuZF9jaGFubmVsIiwidGVsZW1ldHJ5IiwiYXJ0aWZhY3RzIl0sImV4cCI6MTc4MDU4MDM5NCwiaWF0IjoxNzc5OTc1NTk0fQ.YqU0mEL1vQnJTPk2gJ5yh2Cmhoikz4sWHIOUNaY4Yj4
+```
+
+## A.7 · Run the Agent
+
+The agent is the same docker image Path C end-users run. From the local dev box:
+
+Create the dir to store temp data
+
+```bash
+mkdir -p /tmp/atelier-data && chmod 0777 /tmp/atelier-data
+```
+
+Run the agent
+
+```bash
+docker run -d --rm \
+  --add-host=host.docker.internal:host-gateway \
+  -v /tmp/atelier-data:/data \
+  -e ATELIER_GATEWAY_URL=http://host.docker.internal:50051 \
+  -e ATELIER_TOKEN=$TOKEN_JWT \
+  -e RUST_LOG=info \
+  iteralabs/atelier-agent:latest
+```
+
+Look for `Registration accepted — agent_id allocated by Gateway` in `docker logs`. 
+Within 1–2s the binding flips to active and Parquet files start landing under
+`/tmp/atelier-data/BTCUSDT/orderbooks/` and `/trades/`.
+
+> Why `host.docker.internal:50051` and not `gateway:50051`? The agent container 
+runs **outside** the compose network, so the compose-internal DNS name doesn't resolve. 
+`host.docker.internal` (with the `--add-host` flag on Linux) routes back through 
+the host's port forward to the gateway.
+
+## A.8 · Verify
+
+DBeaver or `psql`: `localhost:5432`, user/db `atelier`, password `atelier_dev`.
+
+```sql
+SELECT s.status AS svc, b.status AS bind, b.release_reason,
+       a.status AS agt, a.last_heartbeat_at,
+       t.status AS task, cs.state AS slot
+FROM services s
+LEFT JOIN bindings      b  ON b.service_id       = s.service_id
+LEFT JOIN agents        a  ON a.agent_id         = b.agent_id
+LEFT JOIN tasks         t  ON t.service_id       = s.service_id
+LEFT JOIN compute_slots cs ON cs.compute_slot_id = t.compute_slot_id
+WHERE s.service_id = '<service_id>';
+```
+
+Happy path verification should show these: 
+
+- `svc=active`
+- `bind=active`
+- `agt=bound`
+- `task=running`
+- `slot=occupied`
+- `last_heartbeat_at` non-null.
+
+Wire-side offsets (both should be > 0):
+
+```bash
+docker compose -f docker-compose.beta.yml exec kafka \
+  kafka-run-class kafka.tools.GetOffsetShell --bootstrap-server kafka:29092 \
+  --topic lifecycle.events --time -1
+```
+
+```bash
+docker compose -f docker-compose.beta.yml exec kafka \
+  kafka-run-class kafka.tools.GetOffsetShell --bootstrap-server kafka:29092 \
+  --topic control.manifests --time -1
+```
+
+There is a full automated verification using a shell script, run
+
+`atelier-infra/scripts/accept_i4_5.sh --no-stack` 
+
+(gates i–iii pass at 4.5; gates iv+v require Iteration 4.6).
+
+## A.9 · Tear Down
+
+```bash
+curl -s -X DELETE http://localhost:8000/api/agents/<agent_id> \
+  -H "Authorization: Bearer dev-token" | jq
+```
+
+Re-run §A.8 query. Happy path verification should show these: 
+
+- `svc=stopped`
+- `bind=released release_reason=operator_stop`
+- `agt=terminated`
+- `task=completed`
+- `slot=vacant`
+
+Stack down: `docker compose -f docker-compose.beta.yml down -v`. 
+and in case of need to drop volumes, add `-v`.
+
+---
+
+# Path B · Production Hosting on Ultradian (iteralabs.xyz/atelier)
+
+Concrete runbook for deploying the alive demo to `https://www.iteralabs.xyz/atelier/` (dashboard) and `https://www.iteralabs.xyz/atelier/docs/` (MkDocs) using the **Ultradian** Ubuntu server as the host. Backend stack runs alongside on the same machine; Cloudflare Tunnel terminates TLS and forwards inbound traffic — no port-forwarding, no Let's Encrypt, no public IP required on Ultradian.
+
+```mermaid
+flowchart LR
+    Internet[Internet user]
+    CF[Cloudflare edge<br/>iteralabs.xyz]
+    Tunnel[cloudflared<br/>outbound tunnel]
+    Webapp[Webapp container<br/>:8080]
+    Backend[Backend stack<br/>compose:8000+50051]
+    Internet -->|HTTPS| CF
+    CF -->|TLS-terminated| Tunnel
+    Tunnel -->|localhost:8080| Webapp
+    Webapp -->|host.docker.internal:8000| Backend
+```
+
+## B.0 · Ultradian inventory (verify these before starting)
+
+Assumptions baked into this runbook — confirm or adjust before running the commands below:
+
+| Item | Assumption | How to verify |
+|---|---|---|
+| OS | Ubuntu 22.04 LTS or 24.04 LTS | `lsb_release -a` |
+| Shell access | ssh from your laptop with sudo on Ultradian | `ssh ultradian.local` (or its LAN IP / hostname) |
+| Source tree | `~/git/iteralabs/{atelier-backend,atelier-sdk,atelier-proto,atelier-webapp,atelier-infra}` cloned on Ultradian | `ls ~/git/iteralabs` |
+| Docker | not yet installed (idempotent install in B.2) | `docker --version 2>/dev/null \|\| echo MISSING` |
+| `cloudflared` | not yet installed (B.5 installs) | `cloudflared --version 2>/dev/null \|\| echo MISSING` |
+| Cloudflare zone | `iteralabs.xyz` already imported into your Cloudflare account | check Cloudflare dashboard → Websites |
+| Ports on the LAN | `8080` (webapp), `8000` (overseer REST), `5432` (postgres), `9092` (kafka), `50051` (gateway gRPC) free on Ultradian's loopback | `sudo ss -tlnp \| grep -E ':(8080\|8000\|50051\|5432\|9092)'` |
+
+If any row diverges, fix it before continuing or adapt the commands accordingly. The ports list matters: nothing else can be bound to them on Ultradian or the docker bring-up will silently fail one container at a time.
+
+## B.1 · Connect + sync source
+
+From your laptop:
+
+```bash
+ssh <user>@ultradian             # adjust hostname / IP
+cd ~/git/iteralabs
+
+# Pull the latest from each repo. Atelier-notes is NOT in this monorepo
+# (it's an Obsidian vault); only the five public code repos plus the
+# internal atelier-overledger payments crate.
+for r in atelier-proto atelier-sdk atelier-backend atelier-webapp atelier-infra atelier-overledger; do
+    if [[ -d $r ]]; then
+        echo "▸ updating $r"
+        (cd $r && git pull --ff-only)
+    else
+        echo "▸ skipping $r (not present)"
+    fi
+done
+```
+
+`atelier-overledger` is an **internal IteraLabs repo** (M3 payments work — Stripe + MoonPay ledger surface). It's not part of the public v0.1 ship; end users never see it. But `atelier-backend/Cargo.toml` path-deps into it, so the overseer build will fail at workspace-manifest load if it's absent on the deploy host. See `product-notes.md §"Platform composition"` for the internal-vs-public framing, and Path A §A.3 for workspace-trap context.
+
+## B.2 · System dependencies (idempotent)
+
+```bash
+# Docker
+if ! command -v docker >/dev/null; then
+    curl -fsSL https://get.docker.com | sh
+    sudo usermod -aG docker $USER
+    echo "▸ log out and back in (or run 'newgrp docker') so the group change takes effect"
+    exit 0   # script-style: stop here, ssh back in
+fi
+
+# Common tools
+sudo apt-get update
+sudo apt-get install -y --no-install-recommends \
+    git curl jq openssl postgresql postgresql-client ufw
+
+# Sanity
+docker --version
+docker compose version    # `compose` not `compose-plugin`
+jq --version
+```
+
+If `docker compose` is v1 (`docker-compose ...` with a hyphen), upgrade — the manual assumes v2.
+
+## B.3 · Backend stack (production tunables)
+
+```bash
+cd ~/git/iteralabs/atelier-infra
+
+# Generate one secret used by both gateway (signs JWTs) and overseer
+# (validates them). Both env vars must hold the SAME value.
+SECRET=$(openssl rand -base64 48)
+cat > .env <<EOF
+GATEWAY_JWT_SECRET=$SECRET
+JWT_SECRET=$SECRET
+AUTH_DEV_BYPASS=true
+BINDING_PENDING_GRACE_MS=60000
+RUST_LOG=atelier_overseer=info,atelier_gateway=info,info
+EOF
+chmod 0600 .env             # contains the JWT signing key
+
+# --- Build the three backend images. 
+# First: run is ~5–8 min (cold Rust deps);
+# Next: runs cache layer-by-layer.
+docker compose -f docker-compose.beta.yml build gateway overseer
+
+# --- Bring up infra first
+# wait for kafka topics to be created.
+docker compose -f docker-compose.beta.yml up -d postgres zookeeper kafka
+docker compose -f docker-compose.beta.yml up postgres-init kafka-init
+
+# --- Then the application containers
+
+# --- Local
+# The compose `webapp` service is NOT what we ship publicly — 
+# it's a dev-mode nginx pointing at localhost:3000.
+
+# --- Live
+# Production uses the standalone webapp image built in B.4 below.
+docker compose -f docker-compose.beta.yml up -d gateway overseer
+
+# Sanity
+docker compose -f docker-compose.beta.yml ps
+curl -sf http://localhost:8000/health && echo "▸ overseer healthy"
+docker compose -f docker-compose.beta.yml exec kafka \
+    kafka-topics --bootstrap-server kafka:29092 --list   # 7 topics expected
+```
+
+The 7 expected topics: 
+
+- `lifecycle.events`
+- `control.manifests`
+- `control.commands`
+- `telemetry.reports`
+- `artifact.frames`
+- `dataset.events`
+- `events.bus`.
+
+> **Auth note for the demo.** `AUTH_DEV_BYPASS=true` makes the deploy URL 
+self-serve — anyone landing on `/atelier/` can spin up Services. 
+For an invite-only alpha, layer Cloudflare Access policies (zero-trust) on 
+`/atelier/*` in the Cloudflare dashboard until Iteration 5 ships real auth. 
+Cloudflare Access is a separate Cloudflare product 
+(Zero Trust → Access → Applications); free tier covers up to 50 users.
+
+> **Firewall.** Ultradian's `localhost:8000` (overseer REST) and 
+`localhost:50051` (gateway gRPC) should NOT be reachable from the LAN 
+unless you intend remote agents to use them directly. Lock down 
+with `sudo ufw deny 8000 && sudo ufw deny 5432 && sudo ufw deny 9092 && sudo ufw enable`. 
+Only the webapp container reads `:8000` via `host.docker.internal`, 
+and only `cloudflared` reads `:8080`. Gateway exposure for remote agents is handled in B.6.
+
+## B.4 · Build + run the webapp+webdocs image
+
+`atelier-webapp/Dockerfile` is a 3-stage build: 
+
+1. Trunk → SPA
+2. MkDocs → static site
+3. nginx → serves both. 
+
+all in One image, one container.
+
+```bash
+cd ~/git/iteralabs/atelier-webapp
+
+# The provided deploy script does: docker build → stop existing →
+# docker run with --restart unless-stopped on port 8080.
+./deploy/deploy-lan.sh 8080
+```
+
+The script ends with a printout of local + LAN URLs. Confirm locally:
+
+```bash
+curl -sI http://localhost:8080/atelier/         # → 200 (SPA index.html)
+curl -sI http://localhost:8080/atelier/docs/    # → 200 (MkDocs index.html)
+curl -sf http://localhost:8080/api/health       # → JSON health response (proxied to overseer)
+```
+
+If `/atelier/docs/` returns 404, the MkDocs build stage failed (likely `--strict` mode caught a broken link). Re-run `docker build -t atelier-webapp .` directly and read the `docs-builder` stage output. The site-source lives in `atelier-webapp/webdocs/docs/`; broken links there fail the entire image build.
+
+## B.5 · Cloudflare Tunnel — install, auth, route
+
+Cloudflare Tunnel runs an outbound process on Ultradian (`cloudflared`) that holds a long-poll connection to Cloudflare's edge. Inbound traffic to `iteralabs.xyz/atelier/*` rides that connection back to `localhost:8080`. No port forwarding on Ultradian, no public IP needed.
+
+### B.5.a · Install cloudflared
+
+```bash
+# Cloudflare's apt repo (preferred — auto-updates with `apt upgrade`)
+curl -L https://pkg.cloudflare.com/cloudflare-main.gpg \
+    | sudo tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
+echo 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared $(lsb_release -cs) main' \
+    | sudo tee /etc/apt/sources.list.d/cloudflared.list
+sudo apt-get update
+sudo apt-get install -y cloudflared
+cloudflared --version
+```
+
+(If the apt repo is flaky, fallback: download the `.deb` directly from `https://github.com/cloudflare/cloudflared/releases/latest` — pick `cloudflared-linux-amd64.deb`.)
+
+### B.5.b · Authorize against the iteralabs.xyz zone
+
+```bash
+cloudflared tunnel login
+```
+
+Opens a Cloudflare auth URL in the terminal. Open it on your laptop, sign in, select the `iteralabs.xyz` zone, authorize. A `cert.pem` lands at `~/.cloudflared/cert.pem` on Ultradian.
+
+### B.5.c · Create the tunnel
+
+```bash
+cloudflared tunnel create atelier-demo
+# Output ends with: Created tunnel atelier-demo with id <UUID>
+```
+
+The UUID and a `<UUID>.json` credentials file go to `~/.cloudflared/`. Note the UUID for the next step.
+
+### B.5.d · Configure ingress
+
+```bash
+TUNNEL_UUID=$(cloudflared tunnel list | awk '/atelier-demo/ {print $1}')
+echo "tunnel UUID: $TUNNEL_UUID"
+
+cat > ~/.cloudflared/config.yml <<YAML
+tunnel: $TUNNEL_UUID
+credentials-file: /home/$(whoami)/.cloudflared/${TUNNEL_UUID}.json
+
+ingress:
+  # ── Webapp + webdocs (path-based) ───────────────────────────────
+  - hostname: www.iteralabs.xyz
+    path: /atelier.*
+    service: http://localhost:8080
+  - hostname: iteralabs.xyz
+    path: /atelier.*
+    service: http://localhost:8080
+
+  # ── Catch-all: everything else returns 404 ──────────────────────
+  - service: http_status:404
+YAML
+```
+
+The `path: /atelier.*` regex matches both `/atelier/` (SPA root) and `/atelier/docs/` (MkDocs); the nginx config inside the webapp container handles the further split. The catch-all rule is required by `cloudflared` — without it, the config fails validation.
+
+### B.5.e · Route the DNS
+
+This creates CNAME records under `iteralabs.xyz` pointing at the tunnel:
+
+```bash
+cloudflared tunnel route dns atelier-demo www.iteralabs.xyz
+cloudflared tunnel route dns atelier-demo iteralabs.xyz   # apex; may fail if a flattening CNAME already exists
+```
+
+If the apex route fails with "Record already exists", that's fine — the `www` CNAME plus Cloudflare's CNAME-flattening at the zone apex will already cover both. Verify in the Cloudflare DNS dashboard that `www.iteralabs.xyz` points at `<UUID>.cfargotunnel.com`.
+
+### B.5.f · Run as a systemd service
+
+```bash
+sudo cloudflared service install
+sudo systemctl status cloudflared
+sudo journalctl -u cloudflared -f         # follow the logs
+```
+
+The service auto-starts on Ultradian reboots and reconnects on transient drops.
+
+### B.5.g · Verify externally (from your laptop)
+
+```bash
+# DNS resolves to a Cloudflare IP
+dig +short www.iteralabs.xyz             # 104.x.x.x or 172.x.x.x
+
+# HTTPS reaches the dashboard + docs
+curl -sI https://www.iteralabs.xyz/atelier/        # → 200
+curl -sI https://www.iteralabs.xyz/atelier/docs/   # → 200
+
+# Open in a browser
+open https://www.iteralabs.xyz/atelier/            # macOS — `xdg-open` on Linux
+```
+
+DNS propagation through Cloudflare is typically 30s. If it still 404s after 2 min, check `journalctl -u cloudflared` for ingress validation errors.
+
+## B.6 · Gateway exposure for end-user agents
+
+End-user agents (Path C) connect to `localhost:50051` on Ultradian for the gRPC TelemetryChannel + CommandChannel + EventSubscribe. Two options for external access; pick based on demo-vs-production posture:
+
+### Option 1 — Demo-grade: open the port via UFW (simpler, no TLS)
+
+```bash
+sudo ufw allow 50051/tcp
+sudo ufw status
+```
+
+End-users set `ATELIER_GATEWAY_URL=http://<ultradian-public-ip-or-LAN-IP>:50051` in their Path C `docker run`. Cleartext gRPC over the open internet — fine for an alive demo on a controlled audience, NOT acceptable for production. Iteration 5 introduces real TLS-on-the-wire for the gateway.
+
+### Option 2 — Tunnel the gRPC port through Cloudflare (TLS-terminated)
+
+Add this to `~/.cloudflared/config.yml`'s `ingress:` list (before the catch-all):
+
+```yaml
+  - hostname: gateway.iteralabs.xyz
+    service: tcp://localhost:50051
+```
+
+Route the DNS:
+
+```bash
+cloudflared tunnel route dns atelier-demo gateway.iteralabs.xyz
+sudo systemctl restart cloudflared
+```
+
+End-users then must run `cloudflared` themselves and connect via `cloudflared access tcp --hostname gateway.iteralabs.xyz --url localhost:50051`, then point the agent at `http://localhost:50051`. Heavier setup on the end-user side; gives proper HTTP/2 framing for gRPC.
+
+For the **alive demo**, Option 1 is the right call — fewer moving pieces on the researcher's machine. Document the public IP / LAN IP in the SpawnModal credential block (the webapp's `gateway_url` field gets set from the overseer's `GATEWAY_URL` env var, so adjust that env var if needed):
+
+```bash
+# In atelier-infra/.env, before bringing the stack up:
+GATEWAY_URL=http://<ultradian-public-or-LAN-IP>:50051
+```
+
+(The default is `http://gateway:50051` which only resolves inside the compose network — useless to external agents.)
+
+## B.7 · Smoke-test the full demo loop
+
+From your laptop:
+
+```bash
+# 1. Dashboard loads
+open https://www.iteralabs.xyz/atelier/
+
+# 2. Docs load
+open https://www.iteralabs.xyz/atelier/docs/
+
+# 3. From the dashboard, open SpawnModal → fill the Binance spot manifest
+#    (see Path A §A.6 for the TOML shape) → click Deploy.
+#    Copy the credential block (gateway_url + ATELIER_TOKEN + docker run snippet).
+
+# 4. On a separate machine (or a second terminal on Ultradian), run the
+#    Path C `docker run` with the captured credentials. Use the public
+#    IP / LAN IP for ATELIER_GATEWAY_URL, not localhost.
+
+# 5. Within ~5s the dashboard binding flips to active and KPIs tick.
+```
+
+If any step fails, the diagnostics in the trailing section apply.
+
+## B.8 · Operations on Ultradian
+
+**Update the platform** (after `git pull` brings in new code):
+
+```bash
+cd ~/git/iteralabs/atelier-infra
+docker compose -f docker-compose.beta.yml build gateway overseer
+docker compose -f docker-compose.beta.yml up -d gateway overseer
+
+cd ~/git/iteralabs/atelier-webapp
+./deploy/deploy-lan.sh 8080            # rebuilds + redeploys with zero-downtime-ish swap
+
+# Tunnel restart only needed if you changed ingress rules
+sudo systemctl restart cloudflared
+```
+
+**Auto-restart on Ultradian reboot.** Already covered:
+- Backend containers: `restart: unless-stopped` is set in `docker-compose.beta.yml`.
+- Webapp container: same flag set by `deploy-lan.sh` (`--restart unless-stopped`).
+- Tunnel: `sudo cloudflared service install` (B.5.f) made it a systemd unit.
+
+**Logs and health:**
+
+```bash
+docker compose -f ~/git/iteralabs/atelier-infra/docker-compose.beta.yml logs -f overseer gateway
+docker logs -f atelier                              # webapp container
+sudo journalctl -u cloudflared -f --since '5 min ago'
+curl -sf http://localhost:8000/health
+curl -sf https://www.iteralabs.xyz/atelier/ -o /dev/null -w '%{http_code}\n'
+```
+
+**Rotating the JWT signing key** (revokes all outstanding agent tokens):
+
+```bash
+cd ~/git/iteralabs/atelier-infra
+SECRET=$(openssl rand -base64 48)
+sed -i "s|^GATEWAY_JWT_SECRET=.*|GATEWAY_JWT_SECRET=$SECRET|" .env
+sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$SECRET|" .env
+docker compose -f docker-compose.beta.yml up -d --force-recreate gateway overseer
+```
+
+All currently-running agent containers will start failing JWT validation; redeploy services from the dashboard to mint fresh tokens.
+
+**Stop everything cleanly:**
+
+```bash
+docker stop atelier                                 # webapp
+docker compose -f ~/git/iteralabs/atelier-infra/docker-compose.beta.yml down
+sudo systemctl stop cloudflared
+```
+
+Add `-v` to the `docker compose down` to drop Postgres and Kafka volumes (destroys all session/binding/agent state).
+
+---
+
+# Path C · End-User Agent Quickstart
+
+You (the researcher) just got a credential block from the webapp's SpawnModal after clicking Deploy. It looks like:
+
+```bash
+docker run -d --rm \
+  --add-host=host.docker.internal:host-gateway \
+  -e ATELIER_GATEWAY_URL=https://gateway.iteralabs.xyz \
+  -e ATELIER_TOKEN=eyJ0eXAiOiJKV1Qi… \
+  iteralabs/atelier-agent:latest
+```
+
+That snippet is **almost** what you want — three additions for a real research workflow:
+
+## C.1 · Pull the agent image
+
+```bash
+docker pull iteralabs/atelier-agent:latest
+```
+
+(Until the image is published to a registry, the platform operator hands it to you via `docker save | docker load` or you build from source per Path A §A.3.)
+
+## C.2 · Pick a host directory for Parquet output
+
+```bash
+mkdir -p ~/atelier-data && chmod 0777 ~/atelier-data
+```
+
+The container writes to `/data` internally; mount your host directory there.
+
+## C.3 · Run the agent with the volume mount
+
+```bash
+docker run -d --rm \
+  --name atelier-agent \
+  --add-host=host.docker.internal:host-gateway \
+  -v ~/atelier-data:/data \
+  -e ATELIER_GATEWAY_URL=https://gateway.iteralabs.xyz \
+  -e ATELIER_TOKEN=eyJ0eXAiOiJKV1Qi…  \
+  -e RUST_LOG=info \
+  iteralabs/atelier-agent:latest
+```
+
+The two changes from the SpawnModal snippet:
+- `-v ~/atelier-data:/data` — Parquet files land here on your machine.
+- `--name atelier-agent` — easier to stop later.
+
+## C.4 · Verify
+
+```bash
+docker logs -f atelier-agent
+```
+
+Within a few seconds you should see:
+
+```
+INFO atelier_connect::remote_agent::gateway: Registration accepted — agent_id allocated by Gateway
+INFO atelier_connect::workers::market_worker: subscribed to BTCUSDT@depth20@100ms
+```
+
+Within a flush window (default 200 snapshots ≈ 20s), Parquet files appear:
+
+```bash
+ls ~/atelier-data/BTCUSDT/orderbooks/    # → binance_BTCUSDT_ob_sync_<ts>.parquet
+ls ~/atelier-data/BTCUSDT/trades/         # → binance_BTCUSDT_trades_sync_<ts>.parquet
+```
+
+Read into Python / Polars / DuckDB:
+
+```python
+import pyarrow.parquet as pq
+df = pq.read_table('~/atelier-data/BTCUSDT/orderbooks/binance_BTCUSDT_ob_sync_<ts>.parquet').to_pandas()
+print(df.head())
+```
+
+The dashboard at `https://www.iteralabs.xyz/atelier/` shows your agent's live KPIs (messages/sec, total events, uptime) within seconds of registration.
+
+## C.5 · Stop the agent
+
+From the webapp: click Delete on the service. The agent self-exits when its binding terminates.
+
+From your terminal: `docker stop atelier-agent`. The platform sees the heartbeat stop and reaps the binding within the reconnect grace window.
+
+## C.6 · Troubleshooting
+
+| Symptom | Check |
+|---|---|
+| `Registration rejected — UNAUTHENTICATED` | Token expired or wrong gateway URL. Get fresh credentials from SpawnModal. |
+| Agent connects but no data | Verify the manifest's symbol exists on the exchange (Binance spot pairs only — USDT-M futures and Bybit are deferred). |
+| No Parquet files after 30s | The volume mount might not have write access. `ls -la ~/atelier-data` should show world-writable; otherwise `chmod 0777`. |
+| `cannot connect to gateway` | If you're behind a corporate firewall, port 50051 may be blocked. The Cloudflare Tunnel HTTPS ingress (B.5) helps. |
+| Dashboard shows no agent after `docker run` | Confirm the agent container is actually running: `docker ps`. If it exited, `docker logs atelier-agent` will show why. |
+
+---
+
+# Live runbook log
+
+## 2026-05-29T19:46:51Z — Cold redeploy + live BYO smoke
+
+Cold rebuild + redeploy after the gateway TLS + grey-cloud switch
+(`engineering-notes.md`, `cyber-security-notes.md`). Ultradian flushes docker
+layers, cargo caches, and pulls all five repos; M4 rebuilds + pushes a fresh
+ARM64 agent image to GHCR. Then a five-step sequence drives Stack-Up →
+Origin-Health → Deploy → Run-Agent → Dashboard. The TLS origin check (step 2)
+and the `--add-host` pin in step 4 (`gateway.iteralabs.xyz` → Ultradian's LAN
+IP `192.168.1.10`) are load-bearing — they bypass DNS and prove the cert
+before the JWT round-trip.
+
+### Clean
+
+```bash
+# ── ULTRADIAN ──────────────────────────────────────────────────
+cd ~/git/iteralabs/atelier-infra
+docker compose -f docker-compose.beta.yml down -v --remove-orphans
+docker builder prune -af && docker image prune -af
+for r in atelier-proto atelier-sdk atelier-backend atelier-webapp; do
+  (cd ~/git/iteralabs/$r && cargo clean)
+done
+git -C ~/git/iteralabs/atelier-backend  pull --ff-only
+git -C ~/git/iteralabs/atelier-sdk      pull --ff-only
+git -C ~/git/iteralabs/atelier-proto    pull --ff-only
+git -C ~/git/iteralabs/atelier-webapp   pull --ff-only
+git -C ~/git/iteralabs/atelier-infra    pull --ff-only
+
+# ── M4 ─────────────────────────────────────────────────────────
+docker rm -f $(docker ps -aq -f ancestor=ghcr.io/iteralabs/atelier-agent:latest-arm64) 2>/dev/null
+docker rmi  -f ghcr.io/iteralabs/atelier-agent:latest-arm64 2>/dev/null
+git -C ~/git/iteralabs/atelier-sdk   pull --ff-only
+git -C ~/git/iteralabs/atelier-proto pull --ff-only
+(cd ~/git/iteralabs/atelier-sdk && cargo clean)
+
+# Rebuild + push the agent image fresh:
+cd ~/git/iteralabs
+docker buildx build --platform linux/arm64 --no-cache \
+  -t ghcr.io/iteralabs/atelier-agent:latest-arm64 \
+  -f atelier-sdk/atelier-agent/agent.Dockerfile --push .
+docker pull ghcr.io/iteralabs/atelier-agent:latest-arm64
+```
+
+### Verify
+
+1. **Stack up (ultradian)**
+
+   ```bash
+   cd ~/git/iteralabs/atelier-infra
+   docker compose -f docker-compose.beta.yml up -d
+   docker compose -f docker-compose.beta.yml ps
+   ```
+
+   All services healthy. Gateway log shows `starting gRPC server with TLS`.
+
+2. **Origin health (ultradian)**
+
+   ```bash
+   openssl s_client -connect localhost:50443 -alpn h2 </dev/null 2>&1 \
+     | grep -E "subject=|ALPN protocol|Verify return"
+   ```
+
+   Expect: `subject=CN=gateway.iteralabs.xyz`, `ALPN h2`, `Verify 0`.
+
+3. **Deploy via modal (M4 browser)**
+
+   Open `https://iteralabs.xyz/atelier/` → `+ADD COLLECTOR` → fill
+   (e.g. Binance / ALGOUSDT / orderbook) → Deploy. Copy the `TOKEN`
+   string from the modal.
+
+4. **Run agent (M4 terminal)**
+
+   ```bash
+   docker run --rm \
+     --add-host gateway.iteralabs.xyz:192.168.1.10 \
+     -e ATELIER_GATEWAY_URL=https://gateway.iteralabs.xyz:50443 \
+     -e ATELIER_TOKEN='<paste>' \
+     -e RUST_LOG=info \
+     ghcr.io/iteralabs/atelier-agent:latest-arm64
+   ```
+
+   Expect: `Registration accepted` → `Manifest received` →
+   `WebSocket connected` → `connection.state_transition ... streaming`.
+
+5. **Dashboard check (M4 browser)**
+
+   Back to `https://iteralabs.xyz/atelier/`. Service tile flips to
+   `active`. Click into it. Today's known gaps: log feed + plot data +
+   Pause/Resume commands — map to Telemetry/Artifact channel reaching
+   webapp (Iteration 3.5) and CommandChannel ack routing (Iteration 4.B
+   closeout / 4.6).
+
+---
+
+# Schema cheat sheet
+
+PKs are `<table>_id` (no generic `id` on spec tables). FSM tables use per-state entry timestamps:
+
+| Table | "Created" timestamp |
+|---|---|
+| bindings, tasks | `pending_at` |
+| agents | `registered_at` |
+| commands | `issued_at` |
+| manifests | `composed_at` |
+| services, sessions, pipelines | `created_at` |
+
+Iteration 4.1: `bindings.agent_id` is nullable; B-T2 grace path leaves it NULL with `release_reason='registration_grace_timeout'`.
+
+# Diagnostics
+
+| Symptom | Check |
+|---|---|
+| Binding pending → released ~60s | `BINDING_PENDING_GRACE_MS` too low for cold compile; bump to 600000 in dev |
+| Agent log "Registration accepted", DB row missing | `lifecycle.events --time -1` offset must be > 0 |
+| Agent hangs after registration, `task=running` but no telemetry | `control.manifests --time -1` offset must be > 0 (Iteration 4.2 publish) |
+| `kafka-console-consumer` shows 0 messages despite traffic | Markdown linkification corrupting topic name; type raw |
+| `BrokerTransportFailure` loop in overseer logs | Kafka not ready when overseer started; restart overseer |
+| Overseer logs `artifacts INSERT failed` at flush rate | Iteration 4.5 partial-ship known issue — agent's WorkerId::new() doesn't match Overseer's task_id; closeout is Iteration 4.6 |
+| Dashboard shows `worker_*` JSON tags in WS frames | Legacy serde rename shim — drops with Iteration 5 typed-Envelope migration |
+
+# Known limitations (as of 2026-05-11)
+
+- **`artifacts` table stays empty in steady state.** Iteration 4.5 PARTIAL — Parquet files land on the agent host, but lineage rows don't persist server-side. Crash recovery and audit trail features that depend on this table are correspondingly unavailable. Iteration 4.6 closeout.
+- **Real auth not wired.** `AUTH_DEV_BYPASS=true` is the only supported auth mode; for invite-only alpha, front the webapp with Cloudflare Access policies. Iteration 5 scope.
+- **PlatformAgent docker-spawn deferred.** Only `agent_type='remote'` works (the BYO-infra path documented in this manual). PlatformAgent step 7 of the use case is Iteration 5.
+- **Reconnection grace timers simulated.** Immediate expiry vs spec'd 60s/120s. Doesn't affect the demo loop; matters for SEQ-4 Recovery work in v0.1-beta-3.
+- **Drain / Recovery (use case step 7) not implemented.** Spec is in flight (`channels` table promotion, `agent.reconnect_grace_ms` tunable, SEQ-4/SEQ-5). v0.1-beta-3 concern.
+- **Webapp on legacy `worker_*` JSON tags via `#[serde(rename)]` shim.** Drops with Iteration 5 typed-Envelope migration. Dashboard works; spec hygiene only.
+- **Spot only.** Binance USDT-M futures, Coin-M futures, and Bybit are out of scope for v0.1-beta-2.
+
+# Iteration cross-reference
+
+For the canonical list of what each iteration shipped (and what's pending), see `engineering-notes.md` (same folder). For the success criteria the platform is shipping against, see `product-notes.md`. For locked architectural commitments, see `decision-records.md`. The Session Log in `../CLAUDE.md` carries the dated decision history.

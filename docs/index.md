@@ -1,25 +1,51 @@
+---
+description: Financial research infrastructure for collecting, replaying, and modelling crypto market microstructure — the Atelier SDK.
+---
+
 # Atelier SDK
 
-Documentation for the [Atelier SDK](https://github.com/IteraLabs/atelier-sdk),
-a Rust workspace for building quantitative and machine-learning
-research experiments on the Atelier platform — collect microstructure
-data from cryptocurrency exchanges, replay it deterministically, fit
-quantitative models, evaluate strategies.
+**Financial research infrastructure for crypto market microstructure.** A Rust workspace for
+collecting microstructure data from cryptocurrency exchanges, replaying it deterministically,
+fitting quantitative models, and evaluating strategies — built by
+[IteraLabs](https://github.com/IteraLabs).
 
-The site is organized around four reading paths:
+## Start here
 
-- **Just starting out?** Go to [Getting started](sdk/getting-started.md) — a
-  thirty-line Rust walkthrough that gets you from `cargo new` to a
-  Parquet file with live Bybit data in it.
-- **Want the big picture?** [Architecture](sdk/architecture.md)
-  walks the cross-crate story with a Mermaid data-flow diagram.
-- **Want to do something specific?** [Tutorials](guides/index.md)
-  has three flagship walkthroughs — single-exchange persistence,
-  multi-exchange synchronized collection, and Hawkes-process fitting
-  on real arrival data.
-- **Looking up an API?** [API reference](sdk/api/index.md) is the
-  exhaustive view, organized by crate, with links out to docs.rs for
-  full type signatures.
+<div class="grid cards" markdown>
+
+-   __Getting started__
+
+    ---
+
+    From `cargo new` to a Parquet file of live Bybit data in thirty lines of Rust.
+
+    [Get started →](sdk/getting-started.md)
+
+-   __Architecture__
+
+    ---
+
+    The cross-crate data flow, from WebSocket frames to fitted models, with diagrams.
+
+    [Read the architecture →](sdk/architecture.md)
+
+-   __Tutorials__
+
+    ---
+
+    Three end-to-end walkthroughs: single-exchange persistence, multi-exchange sync, Hawkes fitting.
+
+    [Browse tutorials →](guides/index.md)
+
+-   __Research__
+
+    ---
+
+    Dated, authored methodology notes — the reasoning behind the numbers, with reproducible code.
+
+    [Read the research →](research/index.md)
+
+</div>
 
 ## Where things live
 
@@ -33,7 +59,7 @@ The site is organized around four reading paths:
 The docs are intentionally **not** in the SDK repo so the SDK can
 stay a focused Rust workspace. Documentation references the SDK via
 links and auto-extracted API skeletons (regenerated against a local
-SDK checkout — see [Operations → Cutover runbook](operations/cutover-runbook.md)).
+SDK checkout — see [Platform → Operations](operations/index.md)).
 
 ## Workspace shape
 
@@ -55,7 +81,9 @@ together.
 
 ## Quick links
 
-- [Backend reference](backend/index.md) — REST / WebSocket / gRPC API contract
+- [Research](research/index.md) — methodology notes from the lab
+- [Dataset catalog](datasets/index.md) — collected microstructure data + schema
+- [Platform API](backend/index.md) — REST / WebSocket / gRPC contract
 - [About this site](about.md) — scope, contribution, versioning
 - [GitHub: atelier-sdk](https://github.com/IteraLabs/atelier-sdk)
 - [GitHub: atelier-webdocs](https://github.com/IteraLabs/atelier-webdocs)

@@ -1,0 +1,178 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   theme.css — maps Atelier brand tokens (tokens.css) onto MkDocs Material's
+   --md-* variables, sets the heading face, and brands code + admonitions.
+
+   Load order (mkdocs.yml extra_css): tokens.css → theme.css → extra.css
+   so these overrides win over the stock Material palette.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Space Grotesk is the heading face. DM Sans (body) and JetBrains Mono
+   (code) are loaded by Material via theme.font. @import MUST be first. */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+/* ── Heading typography ─────────────────────────────────────────────── */
+:root {
+  --brand-font-heading: "Space Grotesk", var(--md-text-font, "DM Sans"), -apple-system, sans-serif;
+}
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3,
+.md-typeset h4,
+.md-typeset h5,
+.md-typeset h6,
+.md-header__title,
+.md-nav__title {
+  font-family: var(--brand-font-heading);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.md-typeset h1 {
+  font-weight: 700;
+  /* Material mutes h1 by default; a research-grade hero wants it crisp. */
+  color: var(--c-rosewater);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DARK  →  [data-md-color-scheme="slate"]
+   ═══════════════════════════════════════════════════════════════════════ */
+[data-md-color-scheme="slate"] {
+  /* Surfaces / text */
+  --md-default-bg-color:           var(--c-base);
+  --md-default-fg-color:           var(--c-rosewater);
+  --md-default-fg-color--light:    var(--c-text);
+  --md-default-fg-color--lighter:  var(--c-highlight1);
+  --md-default-fg-color--lightest: var(--c-border-light);
+  --md-typeset-color:              var(--c-rosewater);
+
+  /* Links / accent — azure across all interactive states */
+  --md-typeset-a-color:            var(--c-accent);
+  --md-accent-fg-color:            var(--c-accent);
+  --md-accent-fg-color--transparent: var(--c-accent-dim);
+
+  /* Header / footer stay monochrome (brand dark), not pure black */
+  --md-primary-fg-color:           var(--c-base-card);
+  --md-primary-fg-color--light:    var(--c-base-elevated);
+  --md-primary-fg-color--dark:     var(--c-base);
+  --md-primary-bg-color:           var(--c-rosewater);
+  --md-primary-bg-color--light:    var(--c-text);
+  --md-footer-bg-color:            var(--c-base-card);
+  --md-footer-bg-color--dark:      var(--c-base);
+  --md-footer-fg-color:            var(--c-rosewater);
+  --md-footer-fg-color--light:     var(--c-text);
+  --md-footer-fg-color--lighter:   var(--c-highlight1);
+
+  /* Code — panels sit one step up from canvas */
+  --md-code-bg-color:              var(--c-base-card);
+  --md-code-fg-color:              var(--c-rosewater);
+  --md-code-hl-color:              var(--c-accent-dim);
+  --md-code-hl-keyword-color:      var(--c-mauve);
+  --md-code-hl-function-color:     var(--c-accent);
+  --md-code-hl-string-color:       var(--c-green);
+  --md-code-hl-number-color:       var(--c-yellow);
+  --md-code-hl-constant-color:     var(--c-red);
+  --md-code-hl-name-color:         var(--c-rosewater);
+  --md-code-hl-operator-color:     var(--c-text);
+  --md-code-hl-punctuation-color:  var(--c-text);
+  --md-code-hl-comment-color:      var(--c-highlight1);
+  --md-code-hl-special-color:      var(--c-blue);
+
+  /* Selection / shadows */
+  --md-accent-bg-color:            var(--c-base);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LIGHT  →  [data-md-color-scheme="default"]
+   ═══════════════════════════════════════════════════════════════════════ */
+[data-md-color-scheme="default"] {
+  --md-default-bg-color:           var(--c-base);
+  --md-default-fg-color:           var(--c-rosewater);
+  --md-default-fg-color--light:    var(--c-text);
+  --md-default-fg-color--lighter:  var(--c-highlight1);
+  --md-default-fg-color--lightest: var(--c-border-light);
+  --md-typeset-color:              var(--c-rosewater);
+
+  --md-typeset-a-color:            var(--c-accent);
+  --md-accent-fg-color:            var(--c-accent);
+  --md-accent-fg-color--transparent: var(--c-accent-dim);
+
+  --md-primary-fg-color:           var(--c-base-card);
+  --md-primary-fg-color--light:    var(--c-base-elevated);
+  --md-primary-fg-color--dark:     var(--c-base-elevated);
+  --md-primary-bg-color:           var(--c-rosewater);
+  --md-primary-bg-color--light:    var(--c-text);
+  --md-footer-bg-color:            var(--c-base-card);
+  --md-footer-bg-color--dark:      var(--c-base-elevated);
+  --md-footer-fg-color:            var(--c-rosewater);
+  --md-footer-fg-color--light:     var(--c-text);
+  --md-footer-fg-color--lighter:   var(--c-highlight1);
+
+  --md-code-bg-color:              var(--c-base-card);
+  --md-code-fg-color:              var(--c-rosewater);
+  --md-code-hl-color:              var(--c-accent-dim);
+  --md-code-hl-keyword-color:      var(--c-mauve);
+  --md-code-hl-function-color:     var(--c-accent);
+  --md-code-hl-string-color:       var(--c-green);
+  --md-code-hl-number-color:       var(--c-yellow);
+  --md-code-hl-constant-color:     var(--c-red);
+  --md-code-hl-name-color:         var(--c-rosewater);
+  --md-code-hl-operator-color:     var(--c-text);
+  --md-code-hl-punctuation-color:  var(--c-text);
+  --md-code-hl-comment-color:      var(--c-highlight1);
+  --md-code-hl-special-color:      var(--c-blue);
+}
+
+/* ── Code blocks as branded first-class elements ────────────────────── */
+.md-typeset pre > code {
+  border-left: 2px solid var(--c-accent);
+  border-radius: var(--radius-md);
+}
+.md-typeset .highlight [data-md-component="code-block-title"],
+.md-typeset .md-code__content .filename,
+.md-typeset .highlighttable .filename {
+  background: var(--c-base-elevated);
+  color: var(--c-accent-text);
+}
+.md-typeset code {                       /* inline code */
+  border-radius: var(--radius-sm);
+}
+
+/* ── Admonitions → signal palette ───────────────────────────────────── */
+.md-typeset .admonition,
+.md-typeset details {
+  border-radius: var(--radius-md);
+  border-width: 0 0 0 2px;
+}
+.md-typeset .admonition.note,
+.md-typeset .admonition.info     { border-left-color: var(--c-blue); }
+.md-typeset .note > .admonition-title,
+.md-typeset .info > .admonition-title { background-color: var(--c-badge-info-bg); }
+
+.md-typeset .admonition.tip,
+.md-typeset .admonition.success,
+.md-typeset .admonition.hint     { border-left-color: var(--c-green); }
+.md-typeset .tip > .admonition-title,
+.md-typeset .success > .admonition-title { background-color: var(--c-badge-up-bg); }
+
+.md-typeset .admonition.warning,
+.md-typeset .admonition.caution  { border-left-color: var(--c-yellow); }
+.md-typeset .warning > .admonition-title { background-color: var(--c-badge-warn-bg); }
+
+.md-typeset .admonition.danger,
+.md-typeset .admonition.failure,
+.md-typeset .admonition.bug      { border-left-color: var(--c-red); }
+.md-typeset .danger > .admonition-title,
+.md-typeset .failure > .admonition-title { background-color: var(--c-badge-down-bg); }
+
+.md-typeset .admonition.example  { border-left-color: var(--c-mauve); }
+
+/* ── Restraint: comfortable reading measure ─────────────────────────── */
+.md-typeset {
+  font-size: 0.8rem;
+}
+
+/* ── Header logo clearspace (Helius-style) ──────────────────────────── */
+.md-header__button.md-logo img,
+.md-header__button.md-logo svg {
+  height: 1.5rem;
+  width: auto;
+}

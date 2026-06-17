@@ -1,0 +1,7 @@
+# Authors for the Research blog (Material blog plugin).
+# Reference an id from a post's front matter: `authors: [iteralabs]`.
+authors:
+  iteralabs:
+    name: IteraLabs Research
+    description: Financial Research Infrastructure
+    avatar: https://www.iteralabs.xyz/atelier/docs/assets/iteralabs-mark.png
