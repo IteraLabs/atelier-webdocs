@@ -276,6 +276,22 @@ The separation enables: **vacancy** (a ComputeSlot can exist without a Task); **
 
 ---
 
+## HOW — Ingest / Data Plane
+
+The data-plane layer names how a RemoteAgent's **Ingest** Skill turns external-exchange market data into Artifacts. It is **Service-scoped** (it names market-data, not platform-control, concepts) and **additive**: it introduces no new Channel, Sink, or Activation type.
+
+- **Feed** — A live, Agent-run subscription to one **`(venue, instrument, datatype)`** market-data stream from an external exchange, where `datatype ∈ {orders, trades}`. The external venue connection is the **Ingest mechanism**, not an Atelier Channel. Identified by a **Feed ID** (Agent-allocated; see Identifiers); its lifecycle is the Feed FSM (`fsm` §2.12). A Feed is the data-plane realization of an account-layer **Subscription** (the watchlist of exchange+pair feeds; see Account Layer).
+
+- **`…Book`** — A composable **type-suffix** = *a stateful registry of one market-data type*, composed `<Specialization><Domain>Book` and **never written bare**. Domain ∈ {Order, Trade, … extensible}; Specialization ∈ {Sourced (reconstruction), Synthetic (generation — out of scope for this version)}. The reconstruction half — **`SourcedOrderBook`** and **`SourcedTradeBook`** — is the **Sync** Skill's output; its dynamics are the OrderBook/TradeBook FSMs (`fsm` §2.13).
+
+- **reconstruction-model** — The per-venue rule by which a `SourcedOrderBook`/`SourcedTradeBook` applies deltas (FullRefresh; SeqDelta{RangeInclusive|ExactPrev}; ChecksumDelta; L3; …). An **open axis** carried as SDK config, **not** a closed typology: adding a venue or a model is configuration, never a taxonomy edit (contrast the closed Skill / Sink / Channel typologies).
+
+- **Skill mapping (data-plane).** Uses the existing five Skills, no additions: **Ingest** = the Feed + frame decode; **Sync** = the `SourcedOrderBook`/`SourcedTradeBook` reconstruction; **Emit** = materializing the book output as a `DataArtifact` to a Sink / DataChannel (lineage attaches here); **Report** = per-Feed telemetry. **Transform** is reserved for derived data.
+
+- **DataArtifact shapes.** A Feed's output materializes as `DataArtifact`s (Artifact kind Data) — orderbook snapshots/deltas and public trades. These market-data **schemas are Service-scoped** and are not new closed-typology members (they must not appear at platform/shared scope).
+
+---
+
 ## OBJECTS — Artifacts
 
 - **Artifact** — A materialized output produced by an Agent executing a Task at a ComputeSlot, or by a System Process for audit and operational purposes. Every Artifact carries an **Artifact ID** and either a **Service ID** (Agent-produced, under a Service) or an **Experiment ID** (a ModelArtifact produced by an Experiment run); Agent-produced Artifacts additionally carry a **Task ID**. The Artifact is the logical object; its physical encoding depends on the Sink it is Emitted to. Typed by content:
@@ -355,6 +371,7 @@ Every addressable object carries a unique, immutable identifier assigned at crea
 | Channel | Channel ID | Binding or System | Addresses a specific communication path between two endpoints |
 | Sink | Sink ID | Workspace | Addresses a specific output destination instance |
 | Artifact | Artifact ID | Service | Traces a specific output across Sinks |
+| Feed | Feed ID | Task | One Agent-run `(venue, instrument, datatype)` subscription; **Agent-allocated**, telemetry-reported, no durable platform row |
 | Command | Command ID | Task or Agent | Correlates an imperative instruction with its Acknowledgment. Target is a Task ID (Task-scoped) or Binding ID (Agent-scoped). |
 
 ### Identifier discipline (wire + language layer)

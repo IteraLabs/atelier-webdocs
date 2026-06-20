@@ -46,6 +46,7 @@ Each FSM follows: **States -> Transitions -> Invariants -> Interaction Rules**. 
 | `B` | Binding | `CS` | ComputeSlot |
 | `O` | Overseer | `GW` | Gateway |
 | `CH` | Channel | `SK` | Sink |
+| `F` | Feed | `BK` | Book (OrderBook / TradeBook) |
 
 Cross-tier invariants are filed under the FSM that performs the check, not the one whose state is asserted.
 

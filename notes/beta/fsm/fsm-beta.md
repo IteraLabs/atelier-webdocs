@@ -23,6 +23,8 @@ The Atlas v0.1-beta-2 is organized one FSM per file. Section numbers stay stable
 | `gateway-beta.md` | §2.9 Gateway FSM (minimal) |
 | `channel-beta.md` | §2.10 Channel provisioning contract (minimal) |
 | `sink-beta.md` | §2.11 Sink provisioning contract (minimal) |
+| `feed-beta.md` | §2.12 Feed FSM (data-plane Ingest subscription; Agent-owned) |
+| `book-beta.md` | §2.13 Book families — OrderBook / TradeBook core + Sourced specialization (Synthetic reserved) |
 | `schema-beta.md` | Postgres persistence schema (DDL for ten tables, incl. lineage-only `artifacts` promoted in v0.1-beta-2) |
 | `proto-catalog-beta.md` | Wire-format SSoT: Envelope, control, telemetry, data, events, services |
 | `errors-beta.md` | Semantic catalog for the `ErrorKind` enum |
@@ -52,7 +54,7 @@ State diagrams use ASCII. Transitions are labeled as `trigger [guard] / effect`.
 Every invariant declared in the Atlas (e.g., `INV-A1`, `INV-SV2`, `INV-CH5`) carries an implicit **testability contract**: the invariant MUST name a specific boundary - almost always a transition - at which the assertion can fire in test. The convention:
 
 - **Anchoring.** Each invariant is anchored to one or more of: (a) a transition's Guard (checked before the transition fires), (b) a transition's post-condition (checked after Effects land), or (c) a state-entry predicate (checked every time the state is entered).
-- **Naming.** Invariant IDs use the prefix of the subject FSM: `INV-A*` for Agent, `INV-SV*` for Service, `INV-SN*` for Session, `INV-CS*` for ComputeSlot, `INV-GW*` for Gateway, `INV-CH*` for Channel, `INV-SK*` for Sink, `INV-B*` for Binding, `INV-T*` for Task, `INV-O*` for Overseer. Cross-tier invariants use the FSM that *enforces* the check.
+- **Naming.** Invariant IDs use the prefix of the subject FSM: `INV-A*` for Agent, `INV-SV*` for Service, `INV-SN*` for Session, `INV-CS*` for ComputeSlot, `INV-GW*` for Gateway, `INV-CH*` for Channel, `INV-SK*` for Sink, `INV-B*` for Binding, `INV-T*` for Task, `INV-O*` for Overseer, `INV-F*` for Feed, `INV-BK*` for the OrderBook/TradeBook families. Cross-tier invariants use the FSM that *enforces* the check.
 - **Test form.** An integration test for invariant `INV-X` drives the system to the boundary named in the invariant's body and asserts the condition. Property-testable invariants (e.g., "sequence monotone within a Channel") get a randomized driver; point-testable invariants (e.g., "channel_id unique") get a specific trigger.
 - **Listing.** An invariant body ends with an italicized *Testability:* line naming the boundary. If the boundary is obvious from the invariant statement itself, the line may be omitted - but never silently. Omission means "implicit at the only transition that writes this field."
 - **Governance.** An invariant declared without a reachable boundary is a bug in the spec, not a contract. Reviewers reject invariants they cannot anchor.
@@ -84,6 +86,8 @@ The Atlas v0.1-beta-2 specifies the FSMs required to close SEQ-1 Deploy. Specifi
 | Gateway | `gateway-beta.md` §2.9 | minimal (enough to back INV-GW1 / §2.1.5) |
 | Channel | `channel-beta.md` §2.10 | provisioning contract only |
 | Sink | `sink-beta.md` §2.11 | provisioning contract only |
+| Feed | `feed-beta.md` §2.12 | full (data-plane; Agent-owned) |
+| OrderBook / TradeBook | `book-beta.md` §2.13 | core + Sourced specialization (Synthetic reserved) |
 
 **Deferred**
 
@@ -132,6 +136,8 @@ Three shapes appear in v0.1-beta-2:
 | **Task** | §2.2 | co-by-AgentType | RemoteAgent tasks -> `atelier-sdk`; PlatformAgent tasks -> `atelier-overseer/atelier-overseer` | `tasks` (platform-authoritative mirror of both) |
 | **Channel** | §2.10 | co-by-seam | platform end -> `atelier-overseer/atelier-gateway`; Agent end -> `atelier-sdk` (RemoteAgent) or `atelier-overseer/atelier-overseer` (PlatformAgent) | `channels` durable (`schema-beta.md` table 12); Overseer owns row state, transport co-located at each seam |
 | **Sink** | §2.11 | co-by-SinkType | ObjectSink -> producer-local (sdk or overseer); DBSink -> `atelier-overseer`; TerminalSink -> `atelier-overseer` for SK-T1/SK-T2 handshake, `atelier-webapp` for rendering | deferred; `workspaces.sinks` JSONB authoritative in v0.1-beta-2 |
+| **Feed** | §2.12 | sole (Agent) | RemoteAgent -> `atelier-sdk` | none — lineage-only; telemetry-observed, no durable row (INV-F7) |
+| **OrderBook / TradeBook** | §2.13 | foundational | Sourced specialization runs Agent-side (Sync Skill) -> `atelier-sdk`; Synthetic specialization reserved (P2) | none — lineage-free (INV-BK6) |
 
 **Pure language:** `atelier-proto` - defines the wire contract between owners and between owners and observers. Owns no FSMs.
 
