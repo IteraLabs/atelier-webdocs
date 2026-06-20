@@ -21,6 +21,23 @@ flowchart LR
 
 ---
 
+# ⚠️ Live-test fixes & gotchas (2026-06-19, refactored SDK from-0 run)
+
+A full from-0 bring-up of the **refactored** SDK (`atelier-sdk@refactor/wss-framework-phase0`) surfaced several issues not covered below. Apply these or the bring-up fails. Full results: `atelier-notes/atelier-v0.1/plan/atelier-beta-full-test.md`.
+
+1. **Use the refactored agent image — force a LOCAL build.** `build-agent.sh` prefers a (stale) GHCR pull; build from the local tree:
+   `FORCE=1 NO_PULL=1 bash atelier-sdk/scripts/build-agent.sh` → `atelier-agent:local`.
+2. **Overseer migration double-init kills the scheduler.** `overseer-db` seeds its schema via the Postgres initdb mount (raw SQL, no `_sqlx_migrations` tracking), but the overseer binary *also* runs `sqlx::migrate!` at boot (`src/db/mod.rs:13`) → `relation "users" already exists` → DB marked unavailable → `scheduler not available (requires database and kafka)` → every `POST /api/services` 500s and the overseer boots `Degraded`. **Unblock:** `docker exec overseer-db-… psql -U atelier -d atelier -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO atelier;'` then restart overseer (its sqlx then owns the schema with tracking; idempotent thereafter). *Permanent fix:* the overseer-db README already claims the binary "no longer runs `sqlx::migrate!`" — make that true by removing the `sqlx::migrate!` call (single schema owner).
+3. **Overseer image needs the docker CLI** (already patched in `platform.Dockerfile`). The `DockerSpawner` shells out to `docker run`/`docker stop` against the bind-mounted socket; `runtime-base` ships only `curl`+`ca-certs`. The `runtime-overseer` stage now does `COPY --from=docker:cli /usr/local/bin/docker /usr/local/bin/docker`. Rebuild the overseer image if you see `failed to exec docker`.
+4. **Lifecycle kafka consumer must use `earliest`** (already patched in `gateway_consumer.rs`). With `auto.offset.reset=latest`, a freshly-(re)started overseer races past the one-shot `AgentConnected` event → bindings stuck `pending`, services stuck `deploying` (telemetry still flows). Fixed via `make_consumer_with_reset(..., "earliest")` for the lifecycle consumer.
+5. **webapp build: vendor the private `atelier-proto`.** The webapp pins `atelier-proto` by *private* git rev which can't clone in the build context. Rsync the host's local checkout to `atelier-webapp/vendor-proto/` (exclude `.git`/`target`) and add a Cargo `[patch."https://github.com/IteraLabs/atelier-proto"] atelier-proto = { path = "vendor-proto" }`. (Temp test scaffolding — revert after.)
+6. **overdex-server self-inits its schema** — no manual `overdex init-db` needed (older note is stale).
+7. **Framework path enablement + the Market-vs-Data caveat.** The overseer's `manifest_generator.rs::ensure_framework_ingest` injects `framework_ingest = true` into `[collect]` so managed Data-Worker deploys run `run_framework` (the refactor). **Caveat / open bug:** "Market Worker (synchronized)" deploys add a `[collect.sync]` section and parse as `MarketWorker`, which reads its flag from `[collect.sync]` — but the overseer writes the flag under `[collect]`, so market workers stay on the legacy `ingestion_core` path. Use the **"Data Worker (raw events)"** type to exercise the framework.
+8. **BYO agent (Path C) locally:** the `managed=false` deploy returns the *public* `gateway_url`; a local `docker run` agent must override it: `-e ATELIER_GATEWAY_URL=http://gateway:50443 -e ATELIER_TOKEN=<token> --network overseer-net atelier-agent:local`.
+9. **Real MoonPay/Helio devnet payment:** Helio's dynamic charge-create 422s on devnet (DEVUSDC unpriceable) — set `MOONPAY_USE_STATIC_PAYLINK=1` on the payments service so `checkout/start` returns the hosted `moonpay.dev.hel.io/pay/<id>` page. The paylink must be denominated in **plain USDC** (not DEVUSDC/SOL — those fail Helio's devnet swap/settlement), paid with the Helio devnet-USDC mint `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU` from a wallet whose recipient/Helio/DAO fee token-accounts are initialized. Phantom must be **Testnet Mode → Solana Devnet**. Credit leg = replay the webhook (`POST /payments/moonpay/webhook/paylink`, Bearer `MOONPAY_WEBHOOK_TOKEN_PAYLINK`, `additionalJSON.checkout_id`) since Helio can't reach localhost.
+
+---
+
 # Path A - Local Dev (cold machine -> torn down)
 
 ## A.1 - Clean
