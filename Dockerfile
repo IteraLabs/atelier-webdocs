@@ -44,6 +44,16 @@ RUN mkdocs build --strict --site-dir /site
 
 # ── Stage 2: serve via nginx ─────────────────────────────────────────
 FROM nginx:1.27-alpine AS runtime
+ARG TARGETARCH
+LABEL org.opencontainers.image.source="https://github.com/IteraLabs/atelier-webdocs" \
+      org.opencontainers.image.title="atelier-webdocs" \
+      org.opencontainers.image.description="Atelier documentation site (mkdocs) served at /atelier/docs/" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      atelier.component="atelier-webdocs" \
+      atelier.role="presentation" \
+      atelier.domain="platform" \
+      atelier.arch="${TARGETARCH}" \
+      atelier.lifecycle="canonical"
 
 # Replace the stock default.conf with our /atelier/docs/ subpath config.
 RUN rm /etc/nginx/conf.d/default.conf
