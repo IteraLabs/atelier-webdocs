@@ -255,7 +255,7 @@ These kinds are the wire representations of the four subsystem loss modes catalo
 - **Retryable**: `yes` with backoff.
 
 ### `SUBSYSTEM_LOSS_PROCESS_SPAWNING` (72)
-- **Raised by**: PlatformAgent spawn subsystem (k8s / OS process launcher).
+- **Raised by**: PlatformAgent spawn subsystem (OS process launcher / Docker spawner).
 - **Raised at**: SV-T2 PlatformAgent deploy, T-T2 on-platform Task launch.
 - **Observed by**: Overseer; Services fail deploy with `stopped_reason = 'spawn_failed'`.
 - **Semantics**: Platform cannot launch new Agent processes. RemoteAgent-typed Services are unaffected.

@@ -313,16 +313,3 @@ mike retire 0.1.0-beta   # optional, keeps the dropdown clean
 The bare `/atelier/docs/` URL will redirect to `0.1.0/` instead of
 `0.1.0-beta/`. The `-beta` version still resolves at its own URL for
 anyone who bookmarked it.
-
-## When K8s comes (post-beta)
-
-The whole workflow above is Cloudflare-Tunnel-native. When the K8s
-migration in `atelier-infra` is ready, the cutover changes:
-
-- The Tunnel config edit becomes an `Ingress` resource update.
-- `docker run` becomes a `Deployment` apply.
-- The atomic swap becomes a rolling update.
-
-The image and the docs-site contents stay identical. That's the
-point of having `atelier-infra` consume a container image rather
-than embedding the build.

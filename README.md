@@ -216,4 +216,4 @@ matching the SDK.
 - [`atelier-sdk`](https://github.com/IteraLabs/atelier-sdk) — the Rust workspace this site documents.
 - `atelier-webapp` — the Leptos dashboard previously hosting these docs.
 - `atelier-backend` — the REST / WebSocket / gRPC services documented under `/backend`.
-- `atelier-infra` — K8s manifests + Terraform for the platform; deferred for the docs beta.
+- `atelier-infra` — Terraform + Docker Compose deployment for the platform; deferred for the docs beta.

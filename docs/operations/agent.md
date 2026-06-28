@@ -69,7 +69,7 @@ OPTIONS:
                                [env: AGENT_ALIAS]
 
       --json-logs              Emit structured JSON logs (recommended in
-                               production / K8s).
+                               production).
 
   -h, --help                   Print help
   -V, --version                Print version
@@ -91,7 +91,7 @@ atelier-agent \
   --token eyJhbGc...
 ```
 
-**Production / K8s** with structured logs:
+**Production** with structured logs:
 
 ```bash
 atelier-agent --json-logs
@@ -179,7 +179,7 @@ The metric vocabulary itself is from
     `ghcr.io/iteralabs/atelier-agent` once the agent is published as
     a deployment artifact. This section will be filled in with the
     actual image tag, supported architectures, recommended resource
-    limits, and example Kubernetes manifests at that time. For the
+    limits, and the Docker Compose wiring at that time. For the
     beta, run the agent natively from a `cargo build --release`.
 
 Sketch of the eventual deployment shape:
@@ -194,9 +194,9 @@ docker run -d \
   ghcr.io/iteralabs/atelier-agent:0.0.10
 ```
 
-For Kubernetes the agent will ship as a `Deployment` with a
-`Secret`-mounted `ATELIER_TOKEN`. Manifests will live in
-`atelier-infra/atelier-k8s/agent/` once published.
+The agent runs as a long-lived container managed by Docker Compose
+in `atelier-infra` (`docker-compose.beta.yml`), with `ATELIER_TOKEN`
+supplied from the environment.
 
 ## Common operational issues
 
