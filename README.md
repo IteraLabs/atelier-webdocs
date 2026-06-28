@@ -217,3 +217,5 @@ matching the SDK.
 - `atelier-webapp` — the Leptos dashboard previously hosting these docs.
 - `atelier-backend` — the REST / WebSocket / gRPC services documented under `/backend`.
 - `atelier-infra` — Terraform + Docker Compose deployment for the platform; deferred for the docs beta.
+
+> Part of the **open** Atelier data layer (Apache-2.0). The managed platform — orchestration, modeling marketplace, billing — is separate and proprietary.
