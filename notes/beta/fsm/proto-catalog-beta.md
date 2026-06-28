@@ -2,7 +2,7 @@
 
 The single wire-format source of truth for v0.1-beta-2. Used verbatim on the CommandChannel and TelemetryChannel between SDK (RemoteAgent) / Overseer (PlatformAgent) and the Gateway / Overseer, and on the internal backend event bus.
 
-Target codegen: `prost` + `tonic` from a Rust crate `atelier-proto`. Package `atelier.v0_1_beta_2`. Proto3.
+Target codegen: `prost` + `tonic` from a Rust crate `atelier-proto`. Package `atelier.v1beta1`. Proto3.
 
 **Design stance.** There is no separate "event" catalog. Every FSM transition that crosses a boundary (SDK <-> platform, or backend internal bus) is an `Event` variant in this catalog. This keeps the wire surface and the observability surface in lockstep - when a state is added to an FSM, exactly one new event variant is added here.
 
@@ -12,7 +12,7 @@ Target codegen: `prost` + `tonic` from a Rust crate `atelier-proto`. Package `at
 atelier-proto/
 ├── proto/
 │   └── atelier/
-│       └── v0_1_beta_2/
+│       └── v1beta1/
 │           ├── common.proto           # Envelope, Error, IDs
 │           ├── control.proto          # Registration, Command, Manifest, Acks
 │           ├── telemetry.proto        # Heartbeat, TaskTelemetry, AgentStatus
@@ -30,7 +30,7 @@ atelier-proto/
 ```proto
 syntax = "proto3";
 
-package atelier.v0_1_beta_2;
+package atelier.v1beta1;
 
 import "google/protobuf/timestamp.proto";
 
@@ -43,7 +43,7 @@ import "google/protobuf/timestamp.proto";
 // `string` fields on every message - e.g. `string agent_id = 1;`,
 // `string binding_id = 1;`. Wrapper-message identifier patterns such as
 // `message AgentId { string value = 1; }` are NON-CONFORMANT and MUST NOT
-// appear in `atelier-proto/atelier/v0_1_beta_2/*.proto`. The wrapper
+// appear in `atelier-proto/atelier/v1beta1/*.proto`. The wrapper
 // pattern was considered and rejected: it adds a decode layer on every
 // field without adding any compile-time discipline at the wire - only
 // language-local post-decode wrapping can do that.
@@ -171,9 +171,9 @@ message Error {
 ```proto
 syntax = "proto3";
 
-package atelier.v0_1_beta_2;
+package atelier.v1beta1;
 
-import "atelier/v0_1_beta_2/common.proto";
+import "atelier/v1beta1/common.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";
 
@@ -399,9 +399,9 @@ message CommandAck {
 ```proto
 syntax = "proto3";
 
-package atelier.v0_1_beta_2;
+package atelier.v1beta1;
 
-import "atelier/v0_1_beta_2/common.proto";
+import "atelier/v1beta1/common.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";
 
@@ -468,9 +468,9 @@ message TaskTelemetry {
 ```proto
 syntax = "proto3";
 
-package atelier.v0_1_beta_2;
+package atelier.v1beta1;
 
-import "atelier/v0_1_beta_2/common.proto";
+import "atelier/v1beta1/common.proto";
 import "google/protobuf/timestamp.proto";
 
 // -------- Artifact envelopes --------
@@ -590,9 +590,9 @@ message TerminalEvent {
 ```proto
 syntax = "proto3";
 
-package atelier.v0_1_beta_2;
+package atelier.v1beta1;
 
-import "atelier/v0_1_beta_2/common.proto";
+import "atelier/v1beta1/common.proto";
 import "google/protobuf/timestamp.proto";
 
 // Event is emitted at every FSM transition that crosses a boundary.
@@ -763,9 +763,9 @@ message SinkReady      { string sink_id = 1; SinkType type = 2; string reliabili
 ```proto
 syntax = "proto3";
 
-package atelier.v0_1_beta_2;
+package atelier.v1beta1;
 
-import "atelier/v0_1_beta_2/common.proto";
+import "atelier/v1beta1/common.proto";
 
 service Gateway {
     // CommandChannel. Bidirectional stream. Carries Registration (first frame),

@@ -223,6 +223,7 @@ nav:
 
   - Platform:
       - Platform API: backend/index.md
+      - Wire protocol: proto/proto.md
       - Dataset catalog: datasets/index.md
       - Operations:
           - Overview: operations/index.md
