@@ -385,10 +385,18 @@ This is the static contract behind the C2 review check (Part II); it is normativ
 
 ## ACCOUNT LAYER (scoped out of core orchestration)
 
-These are user-account concerns, named here for coverage. They are **not** part of the core orchestration ontology or the FSM Atlas; they sit above the Session boundary and are owned by other components.
+These are user-account concerns, named here for coverage. They are **not** part of the core orchestration ontology or the FSM Atlas; they sit above the Session boundary and are owned by other components. Their **dynamics** — states, transitions, invariants — are specified in the account-layer FSM companion `../fsm/overledger-beta.md` (§A), which is out of the core Atlas the same way these nouns are out of the core ontology. Because the account layer is out-of-core, these terms are audited only for boundary adherence (billing stays above the Session boundary; see Part II per-repo map → `atelier-overledger`) and are deliberately **not** added to the C1–C7 canonical surface.
 
-- **Subscription** — A user's feed **watchlist**: the set of exchange + trading-pair data feeds they follow. An account-layer concept owned by the webapp/backend, not an orchestration entity (no FSM, no Binding/Task). It seeds what an operator may Deploy, but a Subscription is not itself a Service.
-- **Billing** — Payment, credit, and metering logic. An account-layer concern owned by **`atelier-overledger`**. The **Session** is the unit of billing in the core ontology (the boundary at which usage is counted), but the billing logic, credit ledger, and checkout flow live in overledger and are out of scope here.
+- **Subscription** — A user's feed **watchlist**: the set of exchange + trading-pair data feeds they follow. An account-layer concept owned by the webapp/backend, not an orchestration entity (no FSM, no Binding/Task). It seeds what an operator may Deploy, but a Subscription is not itself a Service. **Naming collision (load-bearing):** "Subscription" is the data-plane watchlist *only*. The billing tier is a distinct noun, **Plan** (below); a billing-tier concept must never be called a Subscription, and a watchlist must never be called a Plan.
+- **Billing** — Payment, token, and metering logic. An account-layer concern owned by **`atelier-overledger`**. The **Session** is the unit of billing in the core ontology (the boundary at which usage is counted), but the billing logic, Ledger, and Checkout flow live in overledger and are out of scope for the core. The unit of charge is the **Token** (below), not a "credit".
+- **Token** — The unit of charge: a metered, spendable unit drawn down as an identity consumes platform resources. The name is the definition — a Token is consumed, Granted, and Refunded, and a balance of Tokens is what an identity holds. (The implementation still names the unit `credit` in code; the credit→token rename is a deferred, separate change that keeps the physical table `billing_credit_ledger`.)
+- **TokenKind** — The closed typology of Tokens, mirroring the metered resource: **compute** (model fits, forecasts, managed-agent runtime), **data** (bytes ingested and retained), **networking** (transport — defined now; metered in a later phase). Exactly three members.
+- **Ledger** — The append-only store of signed Token deltas keyed by `(identity, TokenKind)`; balance is their sum. Not an FSM (audit-and-lineage, never updated in place — like the Atlas `artifacts` table). The single enforcement primitive behind every Debit.
+- **Plan** — The user's **billing tier**: the access subscription that, while active, unlocks the Session envelope and the right to purchase Token packs. The "identity's plan/quota policy" that `SN-T1` resolves the Session envelope from (FSM Atlas `session-beta.md` §2.7.5) is this Plan. Distinct from the data-plane Subscription (see collision note above).
+- **Entitlement** — A derived view of what an identity may do right now: its access tier (a projection of Plan state) plus its Token balances (from the Ledger). The `Entitlements { plan, credits }` the webapp reads. Account-layer projection, not an orchestration entity.
+- **Checkout** — One purchase attempt that, on settlement, Grants Tokens to the Ledger. Owned by overledger; its lifecycle is the Checkout FSM (`fsm/overledger-beta.md` §A.2).
+
+These four account-layer **operations** act on the Ledger and are **not** core System Operations (they never appear on the orchestration wire): **Meter** (derive a charge amount from observed usage), **Debit** (record a consumption, `delta < 0`), **Grant** (award Tokens, `delta > 0`), **Refund** (compensate a prior Debit). They are listed here for coverage; the C3 operation-surface check audits only the eight core System Operations, not these.
 
 ---
 
@@ -465,7 +473,7 @@ A shortcut map: for each repo, which checks typically produce findings. A repo s
 | `atelier-infra` | C1 (topic names, deployment names), C5 (topic ↔ reliability-class mapping) |
 | `atelier-overdex` | Experiment runs (genus + Training kind; overdex-owned, no Atlas FSM), Colocation oracle reads, MCP tool surface; C1 (names), C6 (Experiment is not a Pipeline activation) |
 | `atelier-overplex` | Colocation oracle (`cex_latest`) — read-only latency/region source; Class D (market-data vocabulary stays Service-scoped) |
-| `atelier-overledger` | Billing / credit ledger (account layer, out of core FSM) — audit only that billing stays above the Session boundary |
+| `atelier-overledger` | Account layer (Token / Ledger / Plan / Entitlement / Checkout; dynamics in `fsm/overledger-beta.md` §A), out of core FSM — audit only that (a) billing stays above the Session boundary, (b) the billing tier is named **Plan** not Subscription, and (c) no metering Effect is added to a core transition (metering subscribes to Events). Not on the hook for C1–C7 core surfaces. |
 | MCP control layer | C3 (tool inventory → Operation mapping), Class C (no invented verbs), no separate Query category |
 
 ## Violation taxonomy (Classes A–H)

@@ -30,6 +30,7 @@ The Atlas v0.1-beta-2 is organized one FSM per file. Section numbers stay stable
 | `errors-beta.md` | Semantic catalog for the `ErrorKind` enum |
 | `timeouts-beta.md` | Catalog of time-bounded decision points and tunables |
 | `sequences-beta.md` | Cross-FSM interaction sequences (SEQ-1 Deploy, SEQ-2 Delete, SEQ-4 Crash Recovery, SEQ-5 Platform Drain specified; SEQ-3 folded into SEQ-4) |
+| `overledger-beta.md` | **Account layer (§A), out of the core Atlas** — the `atelier-overledger` Token economy: Ledger (§A.1), Checkout (§A.2), Plan (§A.3), Entitlement (§A.4) FSMs + Metering (§A.5). Persists in `overledger-db`, not `schema-beta.md`; couples to the core only via `SN-T1` envelope resolution, the existing `SN-T6` `plan_revoked` trigger, and Event subscription. Companion to the Taxonomy ACCOUNT LAYER section. |
 
 ---
 
@@ -144,6 +145,8 @@ Three shapes appear in v0.1-beta-2:
 **Pure observer:** `atelier-webapp` - subscribes to Event Broadcast; renders; never persists; never executes transitions.
 
 **Pure infrastructure:** `atelier-infra` - deployment, topic provisioning, observability. Owns no FSMs.
+
+**Account layer (out of the core Atlas):** `atelier-overledger` - owns the Token economy (Ledger / Checkout / Plan / Entitlement FSMs, §A in `overledger-beta.md`) and persists it in `overledger-db`, not the `schema-beta.md` core schema. It owns **no core FSM**: it does not execute any `§1`/`§2.x` transition, and no core transition gains a billing Effect. It couples to the core only as a (a) **reader** at `SN-T1` (the "identity's plan/quota policy" the Session envelope resolves from is the account-layer Plan, §A.3 / `session-beta.md` §2.7.5), (b) **driver of the existing** `SN-T6` administrative trigger `expire_reason=plan_revoked` on entitlement suspension where policy mandates termination, and (c) **observer** that subscribes to orchestration Events (e.g., `BindingActive`/`BindingReleased`) to meter usage. The account-layer `INV-LG*`/`INV-CK*`/`INV-PL*`/`INV-ENT*`/`INV-MET*` prefixes are declared in `overledger-beta.md` and are deliberately absent from the core invariant legend.
 
 #### Cross-ownership tie-breakers
 
