@@ -10,7 +10,7 @@ Companion to the **State Machine Atlas v0.1-beta-2** and the **Taxonomy** (`../t
 
 **Notation** follows the Atlas (`fsm-beta.md` → Reading This Document): transitions are `trigger [guard] / effect`; each `INV-*` ends with an italic `*Testability:*` line naming the boundary where the assertion fires.
 
-**Token vocabulary, deferred code rename.** This file is written in the canonical noun **Token** (Taxonomy → ACCOUNT LAYER). The implementation still names the unit `credit` (`CreditKind`, `billing_credit_ledger`, `/internal/credits/*`); the credit→token rename is a deferred, separate change that keeps the physical table name. Where this spec says "the Ledger debits a Token," the code today writes a row in `billing_credit_ledger`. The spec leads; the code follows.
+**Token vocabulary; one frozen physical name.** This file is written in the canonical noun **Token** (Taxonomy → ACCOUNT LAYER), and the code now matches it: `TokenKind`, `TokenBalances`, and the routes `/internal/tokens/*`. The one frozen legacy name is the physical table **`billing_credit_ledger`**, kept deliberately to avoid a data migration; serialized wire fields likewise keep their `credits`-era keys via serde bridges. Where this spec says "the Ledger debits a Token," the code writes a row in `billing_credit_ledger`.
 
 ---
 
@@ -34,7 +34,7 @@ The **Ledger** is the single enforcement primitive: an append-only log of signed
 **Persistence:** `billing_credit_ledger(id, user_id, kind, delta, reason, checkout_id?, ref_id?, created_at)` in `overledger-db`. `kind ∈ {data, compute, networking}` (the `TokenKind` typology). The four ledger operations — **Meter, Debit, Grant, Refund** (Taxonomy → ACCOUNT LAYER) — are all expressed as one append:
 
 - **Grant** — `delta > 0`, `reason ∈ {signup_grant, …}`. The one-time new-account grant (50 data + 25 compute + 0 networking) and any promotional award.
-- **Debit** — `delta < 0`, `reason` naming the metered work (`fit`, `forecast`, `ingest`, `agent_runtime`, …), `ref_id` the consuming entity.
+- **Debit** — `delta < 0`, `reason` naming the metered work (`fit`, `forecast`, `overwatch.ingest`, `agent_runtime`, …), `ref_id` the consuming entity.
 - **Refund** — `delta > 0`, `reason` a `*_refund`, `ref_id` referencing the debit it compensates.
 - **Meter** — the act of *deriving* a Debit amount from observed usage (bytes ingested, agent-seconds, fit cost) before the append. Meter is the measurement; Debit is the record.
 
@@ -249,13 +249,13 @@ Metering binds each money-grade charge to the orchestration moment it settles ag
 
 | # | Touchpoint | Token | Settles against | Guard/Effect/Periodic | Metering site (account-layer) |
 |---|---|---|---|---|---|
-| 1 | Model fit (Hawkes) | compute | overdex Experiment run (`run → completed`; overdex-owned, **no Atlas FSM** per Taxonomy C6) | Effect on convergence | overdex calls `/internal/credits/debit` (reason=`fit`, ref_id=fit_id) |
-| 2 | Fit-persist refund | compute | same run, persist failure after debit | Effect (compensating) | overdex calls `/internal/credits/refund` (reason=`fit_refund`, ref_id=fit_id) |
+| 1 | Model fit (Hawkes) | compute | overdex Experiment run (`run → completed`; overdex-owned, **no Atlas FSM** per Taxonomy C6) | Effect on convergence | overdex calls `/internal/tokens/debit` (reason=`fit`, ref_id=fit_id) |
+| 2 | Fit-persist refund | compute | same run, persist failure after debit | Effect (compensating) | overdex calls `/internal/tokens/refund` (reason=`fit_refund`, ref_id=fit_id) |
 | 3 | Forecast | compute | overdex forecast run | Effect on completion | overdex Debit (reason=`forecast`, ref_id=**forecast_id** — distinct from the fit's `ref_id=fit_id` so the two never collide under INV-MET1/INV-MET5), incremental price |
 | 4 | Signup Grant | compute+data | first entitlements read (real account) | Effect, idempotent | overledger Grant (reason=`signup_grant`) — INV-LG3 |
 | 5 | Token purchase | per SKU | Checkout CK-T1 | Effect on settlement | overledger Grant (reason=`purchase`) — §A.2 |
 | 6 | Managed agent runtime | compute | Binding window: **B-T3** (= Pending→Active, opens the window; durable `bindings.active_at`) → **B-T8** (= Releasing→Released, closes it; emits `BindingReleased`) | On-release at B-T8 | overledger meters agent-seconds across the window by reading the durable `bindings` timestamps and observing `BindingReleased` (B-T8); ONE full-window Debit (reason=`agent_runtime`, ref_id=binding_id) at close. A long-lived Binding MAY accrue interim charges, but then each keys `ref_id=binding_id:epoch` so every charge is its own exactly-once unit under INV-MET1 (a fixed `ref_id=binding_id` would self-deduplicate). No Effect added to B-T3/B-T8. |
-| 7 | Data at ingest | data | overwatch ingester sha256 exactly-once gate | Effect after dedup | ingester Debit (reason=`ingest`, ref_id=sha256) |
+| 7 | Data at ingest | data | overwatch ingester sha256 exactly-once gate | Effect after dedup | ingester Debit (reason=`overwatch.ingest`, ref_id=`UUIDv5(sha256)`) via `/internal/tokens/debit`; durable via the `data_debit_outbox` owed→billed retry (§A.5.2, INV-MET6) |
 | 8 | Service / Agent slots | — (quota) | **SV-T1** (= Service-provision) / **A-T1** (= Agent-register) | Guard (envelope) | NOT a Debit — capacity quota via `INV-SN1`, Plan-gated (IR-ENT-SN1) |
 | 9 | At-rest retention | data | billing-period sweep over resident bytes | Periodic | overledger/overwatch batch Debit (reason=`retention`) — P3, deferred |
 | 10 | Networking (telemetry/connection/egress) | networking | — | — | Defined as a `TokenKind`; metering deferred to P3 (INV-MET5 prevents double-charging artifact bytes already metered as data) |
@@ -275,7 +275,17 @@ Metering binds each money-grade charge to the orchestration moment it settles ag
 *Testability:* assert at each Debit that `identity_id` is non-null and matches the work's owning Session; property test with two identities asserts no cross-attribution.
 
 **INV-MET5: Charge each physical resource once.** A resource is metered at exactly one seam: data at the ingest dedup gate (not also at agent flush); runtime as agent-seconds across the Binding window (not also as connection-hours); slots as quota (not as Debits); artifact bytes as `data` (not also as `networking`).
-*Testability:* assert at audit that no `(ref_id, kind)` is Debited by two distinct reasons; a single ingested file produces one `ingest` Debit, not an `ingest` plus a `parquet_flush`.
+*Testability:* assert at audit that no `(ref_id, kind)` is Debited by two distinct reasons; a single ingested file produces one data Debit, not an `overwatch.ingest` plus a `parquet_flush`.
+
+**INV-MET6: Retry until billed (durability).** A `data` Debit that fails at its seam (payments unreachable) is not dropped: the ingester records the owed charge in `overwatch.data_debit_outbox` (status `owed`) and a `drain-billing` pass retries it until the Debit succeeds, advancing the row to `billed`. Exactly-once is preserved because the retry reuses the same deterministic `ref_id = UUIDv5(sha256)` — under INV-MET1 a re-attempt against an already-applied Debit returns the existing Ledger reference, so retry-until-billed never double-charges.
+*Testability:* drive a Debit failure, assert one `owed` row; run `drain-billing`, assert it reaches `billed` with exactly one negative Ledger entry; run a second drain and assert no new Ledger entry (same `ref_id`).
+
+### §A.5.2 Durability and the account-layer metering wire
+
+Two implementation realities extend the subscriber model (§A.0) without breaching it:
+
+- **Data-debit outbox.** The ingest Debit (touchpoint 7) is best-effort at the sha256 gate so a metering failure never blocks ingestion. Its durability is the append-only `overwatch.data_debit_outbox` (ClickHouse `ReplacingMergeTree(version)`, keyed by `sha256`, status `owed → billed`) plus the `drain-billing` retry pass (INV-MET6). Like the core Ledger, the outbox carries no orchestration state — it is a durability record for owed charges, not a new FSM owner.
+- **Runtime metering wire.** Compute runtime (touchpoint 6) is carried to the meter by a derived account-layer event, `metering.binding.usage` (Kafka, keyed by `binding_id`, carrying the resolved `identity_id` and the `bindings.active_at`/`released_at` window). It is **observer-derived from the already-cataloged `BindingReleased` Event** (B-T8, `proto-catalog-beta.md §events.proto`), not a new core boundary-crossing transition; it is therefore intentionally **not** registered in `proto-catalog-beta.md` (which, per INV-P3, holds exactly one Event variant per *core* FSM transition). It is account-layer wire, documented here. Emitting it adds no Effect to B-T3/B-T8 (§A.0, IR-ENT-B1).
 
 ---
 
@@ -292,7 +302,7 @@ Metering binds each money-grade charge to the orchestration moment it settles ag
 
 **Account layer ↔ overdex Experiment runs (IR-ENT-X)**
 
-- **IR-ENT-X1: Fit/forecast metering at the run boundary.** Experiment runs are overdex-owned with no Atlas FSM (Taxonomy C6). overdex Debits at `run → completed` (fit, forecast) and Refunds at persist-failure, calling `/internal/credits/{debit,refund}` directly. The core Atlas is not involved; this rule exists so the charge has a documented home.
+- **IR-ENT-X1: Fit/forecast metering at the run boundary.** Experiment runs are overdex-owned with no Atlas FSM (Taxonomy C6). overdex Debits at `run → completed` (fit, forecast) and Refunds at persist-failure, calling `/internal/tokens/{debit,refund}` directly. The core Atlas is not involved; this rule exists so the charge has a documented home.
 
 **Account layer ↔ overwatch ingester (IR-ENT-OW)**
 
